@@ -1,3 +1,5 @@
 ## Project Specification and Documentation
 
-[Specification proposal](./proposal-dirsync.md)
+[Project proposal](./proposal-dirsync.md)
+
+[Specification](./specification.md)
