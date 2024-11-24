@@ -1,3 +1,18 @@
-## Project source files
+## DirSync Project source files
 
-Put your main project files (`CMakeLists.txt`, `.vcxproj` etc.) here. Put your source files here or in subdirectories.
+This project is managed and configured by CMake.
+
+To prepare, build and run, execute the following commands:
+
+```bash
+# prepare CMake cache
+cmake . -B build
+
+# build project and create executables
+cmake --build build
+
+# run the executable
+build/DirSync
+```
+
+
