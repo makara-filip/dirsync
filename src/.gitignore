@@ -1,0 +1,12 @@
+
+# IDE-specific configuration
+.idea/
+
+# Compilation output
+*.out
+*.dSYM
+cmake-build-debug/
+
+
+# MacOS-specific files
+.DS_Store
