@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 #include "json.hpp"
 
@@ -23,6 +24,10 @@ void test_edit_json() {
 
 	std::string filename = "test-parsing.json";
 	std::ifstream input_file(filename);
+	if (!input_file.good()) {
+		std::cerr << "File error" << std::endl;
+		return;
+	}
 
 	json data = json::parse(input_file);
 
@@ -39,15 +44,10 @@ void test_edit_json() {
 int main () {
 	std::cout << "Hello, World!" << std::endl;
 
-
-//	std::cout << "Opening and parsing a JSON file..." << std::endl;
-//	std::ifstream f("test-parsing.json");
-//	json data = json::parse(f);
+	std::filesystem::path cwd = std::filesystem::current_path();
+	std::cout << "CWD:" << cwd << std::endl;
 
 	test_edit_json();
-
-
-
 
 	return 0;
 }
