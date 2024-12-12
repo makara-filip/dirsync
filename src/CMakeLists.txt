@@ -5,4 +5,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(DirSync)
 
-add_executable(DirSync main.cpp)
+add_executable(dirsync main.cpp
+        arguments.cpp
+        arguments.hpp
+        help.hpp
+        help.cpp
+        synchronize.cpp
+        synchronize.hpp)

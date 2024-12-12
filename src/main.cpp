@@ -1,53 +1,24 @@
 #include <iostream>
-#include <fstream>
-#include <filesystem>
+#include <string>
+#include <vector>
 
-#include "json.hpp"
+//#include "json.hpp"
+#include "arguments.hpp"
+#include "help.hpp"
+#include "synchronize.hpp"
 
-using json = nlohmann::json;
+int main(int argc, char **argv) {
+	std::vector<std::string> args(argv, argv + argc);
+	ProgramArguments arguments;
+	if (!arguments.try_parse(args))
+		return EXIT_CODE_INCORRECT_USAGE;
 
-struct DirectoryConfiguration {
-	std::string version;
-	unsigned long testNumber;
-};
-
-void from_json(const json& j, DirectoryConfiguration& p) {
-	j.at("version").get_to(p.version);
-	j.at("testNumber").get_to(p.testNumber);
-	//	j.at("age").get_to(p.age);
-}
-void to_json(json& j, const DirectoryConfiguration& p) {
-	j = json{{"version", p.version}, {"testNumber", p.testNumber}};
-}
-
-void test_edit_json() {
-
-	std::string filename = "test-parsing.json";
-	std::ifstream input_file(filename);
-	if (!input_file.good()) {
-		std::cerr << "File error" << std::endl;
-		return;
+	if (arguments.mode == ProgramMode::help) {
+		print_help();
+	} else if (arguments.mode == ProgramMode::synchronize) {
+		int code = synchronize_directories(arguments);
+		return code;
 	}
-
-	json data = json::parse(input_file);
-
-	DirectoryConfiguration content = data.template get<DirectoryConfiguration>();
-	input_file.close();
-
-	content.testNumber++;
-
-	json serialized = content;
-	std::ofstream output_file(filename);
-	output_file << serialized;
-}
-
-int main () {
-	std::cout << "Hello, World!" << std::endl;
-
-	std::filesystem::path cwd = std::filesystem::current_path();
-	std::cout << "CWD:" << cwd << std::endl;
-
-	test_edit_json();
 
 	return 0;
 }
