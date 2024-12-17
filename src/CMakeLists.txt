@@ -11,4 +11,9 @@ add_executable(dirsync main.cpp
         help.hpp
         help.cpp
         synchronize.cpp
-        synchronize.hpp)
+        synchronize.hpp
+        configuration/configuration.cpp
+        configuration/configuration.hpp
+        configuration/configuration-json.cpp
+        configuration/configuration-json.hpp
+)

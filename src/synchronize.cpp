@@ -1,4 +1,5 @@
 #include "synchronize.hpp"
+#include "constants.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -15,7 +16,7 @@ int verify_source_directory(const fs::path &path, fs::directory_entry &directory
 		status = directory.status();
 	} catch (fs::filesystem_error &error) {
 		std::cerr << "Error: Failed to check the source directory details." << std::endl
-				  << "System error: " << error.what() << std::endl;
+			<< "System error: " << error.what() << std::endl;
 		return EXIT_CODE_FILESYSTEM_ERROR;
 	}
 

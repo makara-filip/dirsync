@@ -22,8 +22,9 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 			mode = ProgramMode::help;
 		} else if (argument == "--verbose") {
 			verbose = true;
+		} else if (argument == "--dry-run") {
+			dry_run = true;
 		}
-		// other flags or parameters...
 	}
 
 	if (mode == ProgramMode::help)
@@ -46,7 +47,7 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 	return true;
 }
 
-const char *flag_to_string(bool enabled) {
+const char *flag_to_string(const bool enabled) {
 	return enabled ? "enabled" : "disabled";
 }
 
@@ -58,8 +59,10 @@ const char *string_or_empty(const std::string &str) {
 
 void ProgramArguments::print(std::ostream &stream) const {
 	stream << "Flags: " << std::endl;
-	stream << "    help: " << flag_to_string(mode == ProgramMode::help) << std::endl;
+	stream << "    help: " << flag_to_string(mode == ProgramMode::help)
+		<< std::endl;
 	stream << "    verbose: " << flag_to_string(verbose) << std::endl;
+	stream << "    dry run: " << flag_to_string(dry_run) << std::endl;
 	stream << "Source dir: " << string_or_empty(source_directory) << std::endl;
 	stream << "Target dir: " << string_or_empty(target_directory) << std::endl;
 }

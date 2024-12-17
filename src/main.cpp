@@ -2,13 +2,13 @@
 #include <string>
 #include <vector>
 
-//#include "json.hpp"
 #include "arguments.hpp"
+#include "constants.hpp"
 #include "help.hpp"
 #include "synchronize.hpp"
 
 int main(int argc, char **argv) {
-	std::vector<std::string> args(argv, argv + argc);
+	const std::vector<std::string> args(argv, argv + argc);
 	ProgramArguments arguments;
 	if (!arguments.try_parse(args))
 		return EXIT_CODE_INCORRECT_USAGE;

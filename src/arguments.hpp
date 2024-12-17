@@ -13,6 +13,7 @@ struct ProgramArguments {
 	std::string executable;
 	ProgramMode mode = ProgramMode::synchronize;
 	bool verbose = true;
+	bool dry_run = false;
 
 	std::string source_directory;
 	std::string target_directory;
@@ -21,8 +22,4 @@ struct ProgramArguments {
 	void print(std::ostream &stream) const;
 };
 
-constexpr int EXIT_CODE_INCORRECT_USAGE = 1;
-constexpr int EXIT_CODE_NONEXISTENT_SOURCE_DIRECTORY = 2;
-constexpr int EXIT_CODE_FILESYSTEM_ERROR = 3;
-
-#endif //DIRSYNC_ARGUMENTS_HPP
+#endif // DIRSYNC_ARGUMENTS_HPP
