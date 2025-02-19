@@ -6,6 +6,7 @@
 constexpr int EXIT_CODE_INCORRECT_USAGE = 1;
 constexpr int EXIT_CODE_NONEXISTENT_SOURCE_DIRECTORY = 2;
 constexpr int EXIT_CODE_FILESYSTEM_ERROR = 3;
+constexpr int EXIT_CODE_CONFIG_FILE_PARSE_ERROR = 4;
 
 struct Version {
 	size_t major = 0;

@@ -13,17 +13,25 @@ const Reader *supported_readers[1] = {
 	dynamic_cast<Reader *>(new JsonDirConfigReader())
 };
 
-std::optional<DirectoryConfiguration> get_directory_configuration(
+int get_directory_configuration(
 	const fs::directory_entry &directory,
-	const ProgramArguments &arguments
+	const ProgramArguments &arguments,
+	std::optional<DirectoryConfiguration> &configuration
 ) {
 	for (const Reader *reader : supported_readers) {
 		Result result = reader->read_from_directory(directory, arguments);
 
+		if (std::holds_alternative<DirectoryConfigurationParseError>(result)) {
+			const fs::path config_file_path = directory.path() / reader->config_file_name();
+			std::cerr << "Parse error in " << config_file_path << std::endl;
+			if (arguments.dry_run) break;
+			return EXIT_CODE_CONFIG_FILE_PARSE_ERROR;
+		}
+
 		const DirectoryConfiguration *config = std::get_if<DirectoryConfiguration>(&result);
 		if (config == nullptr) continue;
-
-		return *config;
+		configuration = *config;
+		return 0;
 	}
-	return {};
+	return 0;
 }

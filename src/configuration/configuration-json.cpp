@@ -21,7 +21,7 @@ DirectoryConfigurationReadResult JsonDirConfigReader::read_from_directory(
 	const std::filesystem::directory_entry &directory,
 	const ProgramArguments &arguments
 ) const {
-	const fs::path file_path = directory.path() / DIRECTORY_CONFIG_FILE_JSON;
+	const fs::path file_path = directory.path() / config_file_name();
 	std::error_code error;
 	const fs::file_status file_status = fs::status(file_path, error);
 	if (error) {
@@ -48,6 +48,4 @@ DirectoryConfigurationReadResult JsonDirConfigReader::read_from_directory(
 	} catch (Json::parse_error &) {
 		return DirectoryConfigurationParseError{};
 	}
-
-	return DirectoryConfigurationParseError{};
 }

@@ -48,14 +48,16 @@ class DirectoryConfigurationReader {
 		const std::filesystem::directory_entry &directory,
 		const ProgramArguments &arguments
 	) const = 0;
+	virtual const char *config_file_name() const = 0;
 
 	protected:
 	~DirectoryConfigurationReader() = default;
 };
 
-std::optional<DirectoryConfiguration> get_directory_configuration(
+int get_directory_configuration(
 	const std::filesystem::directory_entry &directory,
-	const ProgramArguments &arguments
+	const ProgramArguments &arguments,
+	std::optional<DirectoryConfiguration> &configuration
 );
 
 #endif //DIRSYNC_DIRECTORY_CONFIG_HPP
