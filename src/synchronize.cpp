@@ -44,6 +44,82 @@ int ensure_target_directory(const fs::path &path, fs::directory_entry &directory
 	return 0;
 }
 
+struct RecursiveSynchronizationContext {
+	std::vector<std::optional<DirectoryConfiguration>>
+		source_configuration_stack, target_configuration_stack;
+	const std::filesystem::directory_entry *source_directory, *target_directory;
+
+	RecursiveSynchronizationContext(fs::directory_entry *source, fs::directory_entry *target) {
+		this->source_directory = source;
+		this->target_directory = target;
+	}
+
+	RecursiveSynchronizationContext make_inner(const fs::directory_entry &source) const {
+		RecursiveSynchronizationContext returned()
+	}
+};
+
+int synchronize_directories_recursively(RecursiveSynchronizationContext context, const ProgramArguments &arguments) {
+	// TODO: make the code logic
+
+	// read this directory configurations, both source and target
+	// add them to the configuration stack
+	// make a composite configuration? - compressing all what to copy and what not
+	// iterate over the source children
+	// - if a file, copy if the config allows
+	// - if a directory, call itself recursively with deeper configuration stack
+
+	std::optional<DirectoryConfiguration> source_configuration, target_configuration;
+	int error = get_directory_configuration(*context.source_directory, arguments, source_configuration);
+	error |= get_directory_configuration(*context.target_directory, arguments, target_configuration);
+
+	context.source_configuration_stack.push_back(source_configuration);
+	context.target_configuration_stack.push_back(target_configuration);
+
+	if (error) return error;
+
+	// TODO: make a composite configuration?
+
+	for (const fs::directory_entry &source_entry : fs::directory_iterator(*context.source_directory)) {
+		std::error_code err;
+		const fs::file_status status = fs::status(source_entry, err);
+		if (err) {
+			std::cerr << "Failed to check file status of " << source_entry << std::endl;
+			continue;
+		}
+
+		const fs::directory_entry matching_target_entry(
+			context.target_directory->path() / source_entry.path().filename(),
+			err
+		);
+
+		if (fs::is_directory(status)) {
+			RecursiveSynchronizationContext recursive_context = context;
+			recursive_context.source_directory = &source_entry;
+			recursive_context.target_directory = &matching_target_entry;
+			synchronize_directories_recursively(recursive_context, arguments);
+		} else if (fs::is_regular_file(status)) {
+			// TODO
+			// if the source allows the copying,
+			// and if the target allows the pasting,
+			// copy it
+			bool copy = true;
+			if (copy) {
+				if (arguments.verbose) std::cout << "Copying " << source_entry << "\n";
+
+				// TODO
+				// if already exists, take action to resolve the conflict
+				// (skip; keep both and rename; override; keep newer version)
+			}
+
+			// TODO: what about .dirsync files themselves? To copy or not to copy? That is the question.
+		}
+	}
+
+	context.source_configuration_stack.pop_back();
+	context.target_configuration_stack.pop_back();
+}
+
 int synchronize_directories(const ProgramArguments &arguments) {
 	const fs::path source_path(arguments.source_directory);
 	const fs::path target_path(arguments.target_directory);
@@ -57,33 +133,8 @@ int synchronize_directories(const ProgramArguments &arguments) {
 	error = ensure_target_directory(target_path, target_directory, target_status);
 	if (error) return error;
 
-	// iterate over all directory entries, but the order is not specified
-	for (const fs::directory_entry &dir_entry : fs::recursive_directory_iterator(source_directory)) {
-		std::cout << dir_entry << '\n';
+	RecursiveSynchronizationContext context(&source_directory, &target_directory);
+	error = synchronize_directories_recursively(context);
 
-		std::error_code err;
-		const fs::file_status status = fs::status(dir_entry, err);
-		if (err) {
-			std::cerr << "Failed to check file status of " << dir_entry << std::endl;
-			continue;
-		}
-
-		// Now, distinguis between directories and files,
-		// whether to copy them or not.
-
-		// if (fs::is_directory(status)) {
-		// 	std::optional<DirectoryConfiguration> configuration;
-		// 	int config_error = get_directory_configuration(dir_entry, arguments, configuration);
-		// 	if (config_error) continue;
-		//
-		// 	// if (!configuration.has_value()) {
-		// 	// 	// proceed with default copy instructions
-		// 	// 	// fs::copy(dir_entry.path(), destination...)
-		// 	// } else {
-		// 	// 	// treat special copy instructions
-		// 	// }
-		// }
-	}
-
-	return 0;
+	return error;
 }
