@@ -67,9 +67,60 @@ struct RecursiveSynchronizationContext {
 	}
 };
 
-int synchronize_directories_recursively(RecursiveSynchronizationContext context, const ProgramArguments &arguments) {
-	// TODO: make the code logic
+void synchronize_file(
+	const ProgramArguments &arguments,
+	RecursiveSynchronizationContext &context,
+	const fs::directory_entry &source_file,
+	const fs::directory_entry &target_file,
+	std::error_code &err
+) {
+	// TODO: what about .dirsync files themselves? To copy or not to copy? That is the question.
+	bool is_config_file = source_file.path().filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
+	if (is_config_file) {
+		return;
+		// TODO: finish this
 
+		if (!arguments.copy_configurations) return;
+		return;
+	}
+
+	bool copy = context.source_allows_to_copy(source_file) && context.target_accepts(source_file);
+	if (!copy) return;
+
+	const fs::file_status target_status = fs::status(target_file, err);
+	fs::path target_path = target_file.path();
+	fs::copy_options options = fs::copy_options::skip_existing;
+
+	if (fs::exists(target_status)) {
+		if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
+
+		const fs::file_time_type source_written_at = fs::last_write_time(source_file);
+		const fs::file_time_type target_written_at = fs::last_write_time(target_file);
+
+		if (source_written_at == target_written_at) return;
+		if (source_written_at < target_written_at) {
+			// do not copy older versions, but inform the user
+			// TODO: bi-directional synchronization handles this differently
+			std::cout << "Skipped copying older version of " << source_file << "\n";
+			return;
+		}
+
+		options = fs::copy_options::overwrite_existing;
+
+		if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
+			// no special treatment
+		} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
+			const auto ticks = context.time.time_since_epoch().count();
+			target_path.replace_filename(target_path.filename() / std::string(ticks));
+		}
+	}
+
+	if (arguments.verbose) std::cout << "Copying " << source_file << "\n";
+	if (arguments.dry_run) return;
+	fs::copy_file(source_file, target_path, options, err);
+}
+
+int synchronize_directories_recursively(RecursiveSynchronizationContext context, const ProgramArguments &arguments) {
 	// read this directory configurations, both source and target
 	// add them to the configuration stack
 	// make a composite configuration? - compressing all what to copy and what not
@@ -108,52 +159,7 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 			recursive_context.target_directory = &matching_target_entry;
 			synchronize_directories_recursively(recursive_context, arguments);
 		} else if (fs::is_regular_file(status)) {
-			// TODO: what about .dirsync files themselves? To copy or not to copy? That is the question.
-			bool is_config_file = source_entry.path().filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
-			if (is_config_file) {
-				continue;
-				// TODO: finish this
-
-				if (!arguments.copy_configurations) continue;
-				continue;
-			}
-
-			bool copy = context.source_allows_to_copy(source_entry) && context.target_accepts(source_entry);
-			if (!copy) continue;
-
-			if (arguments.verbose) std::cout << "Copying " << source_entry << "\n";
-
-			fs::file_status matching_target_status = fs::status(matching_target_entry, err);
-			fs::path target_file_path = matching_target_entry.path();
-			fs::copy_options options = fs::copy_options::skip_existing;
-
-			if (fs::exists(matching_target_status)) {
-				if (arguments.conflict_resolution == ConflictResolutionMode::skip) continue;
-
-				fs::file_time_type source_file_written_at = fs::last_write_time(source_entry);
-				fs::file_time_type target_file_written_at = fs::last_write_time(matching_target_entry);
-
-				if (source_file_written_at <= target_file_written_at) {
-					// do not copy older versions, but inform the user
-					// TODO: bi-directional synchronization handles this differently
-					std::cerr << "Skipped copying older version of " << source_entry << "\n";
-					continue;
-				}
-
-				options = fs::copy_options::overwrite_existing;
-
-				if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
-					// options = fs::copy_options::overwrite_existing;
-					// no special treatment?
-				} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
-					auto ticks = context.time.time_since_epoch().count();
-					target_file_path.replace_filename(target_file_path.filename() / std::string(ticks));
-				}
-			}
-
-			if (arguments.dry_run) continue;
-
-			fs::copy_file(source_entry, target_file_path, options, err);
+			synchronize_file(arguments, context, source_entry, matching_target_entry, err);
 		}
 	}
 
