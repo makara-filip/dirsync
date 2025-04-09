@@ -44,6 +44,10 @@ using DirectoryConfigurationReadResult = std::variant<
 
 constexpr char CONFIG_FILE_NAME_PREFIX[] = ".dirsync";
 
+bool is_config_file(const std::filesystem::path &path) {
+	return path.filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
+}
+
 class DirectoryConfigurationReader {
 	public:
 	virtual DirectoryConfigurationReadResult read_from_directory(

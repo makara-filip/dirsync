@@ -65,6 +65,10 @@ struct RecursiveSynchronizationContext {
 		// TODO: finish this
 		return true;
 	}
+
+	bool should_copy(const fs::directory_entry &entry) {
+		return source_allows_to_copy(entry) && target_accepts(entry);
+	}
 };
 
 void synchronize_file(
@@ -74,22 +78,17 @@ void synchronize_file(
 	const fs::directory_entry &target_file,
 	std::error_code &err
 ) {
-	// TODO: what about .dirsync files themselves? To copy or not to copy? That is the question.
-	bool is_config_file = source_file.path().filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
-	if (is_config_file) {
-		return;
-		// TODO: finish this
-
-		if (!arguments.copy_configurations) return;
-		return;
-	}
-
-	bool copy = context.source_allows_to_copy(source_file) && context.target_accepts(source_file);
-	if (!copy) return;
-
 	const fs::file_status target_status = fs::status(target_file, err);
 	fs::path target_path = target_file.path();
 	fs::copy_options options = fs::copy_options::skip_existing;
+
+	if (is_config_file(source_file)) {
+		bool target_directory_has_config = context.target_configuration_stack.back().has_value();
+		if (target_directory_has_config || !arguments.copy_configurations) return;
+		goto final;
+	}
+
+	if (!context.should_copy(source_file)) return;
 
 	if (fs::exists(target_status)) {
 		if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
@@ -115,6 +114,7 @@ void synchronize_file(
 		}
 	}
 
+final:
 	if (arguments.verbose) std::cout << "Copying " << source_file << "\n";
 	if (arguments.dry_run) return;
 	fs::copy_file(source_file, target_path, options, err);
@@ -153,11 +153,11 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 		);
 
 		if (fs::is_directory(status)) {
-			// TODO: check if the config allows synchronization
+			if (!context.should_copy(source_entry)) continue;
 			RecursiveSynchronizationContext recursive_context = context;
 			recursive_context.source_directory = &source_entry;
 			recursive_context.target_directory = &matching_target_entry;
-			synchronize_directories_recursively(recursive_context, arguments);
+			error = synchronize_directories_recursively(recursive_context, arguments);
 		} else if (fs::is_regular_file(status)) {
 			synchronize_file(arguments, context, source_entry, matching_target_entry, err);
 		}
