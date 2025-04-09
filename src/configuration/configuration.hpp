@@ -29,7 +29,7 @@ struct DirectoryConfiguration {
 	//	DirectoryRole role = DirectoryRole::unspecified;
 	//	 DateTime last_synchronized_date; // TODO
 	//	ExclusionFlags exclusionFlags;
-	//	std::vector<std::string> exclusionPatterns;
+	// std::vector<std::string> exclusion_patterns;
 };
 
 struct DirectoryConfigurationFileNonexistent {};
@@ -41,6 +41,8 @@ using DirectoryConfigurationReadResult = std::variant<
 	DirectoryConfigurationFileNonexistent,
 	std::filesystem::filesystem_error
 >;
+
+constexpr char CONFIG_FILE_NAME_PREFIX[] = ".dirsync";
 
 class DirectoryConfigurationReader {
 	public:

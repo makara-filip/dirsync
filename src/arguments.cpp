@@ -24,6 +24,12 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 			verbose = true;
 		} else if (argument == "--dry-run") {
 			dry_run = true;
+		} else if (argument == "-s" || argument == "--skip-existing" || argument == "--safe") {
+			conflict_resolution = ConflictResolutionMode::skip;
+		} else if (argument == "-r" || argument == "--rename") {
+			conflict_resolution = ConflictResolutionMode::rename;
+		} else if (argument == "--copy-configs" || argument == "--copy-configurations") {
+			copy_configurations = true;
 		}
 	}
 

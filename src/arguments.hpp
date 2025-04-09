@@ -7,6 +7,14 @@
 enum class ProgramMode {
 	help,
 	synchronize
+	// TODO: other options such as:
+	// - ignore <file-or-directory>: adds the file/directrory to the .dirsync config file
+};
+
+enum class ConflictResolutionMode {
+	overwrite_with_newer,
+	skip,
+	rename,
 };
 
 struct ProgramArguments {
@@ -14,6 +22,12 @@ struct ProgramArguments {
 	ProgramMode mode = ProgramMode::synchronize;
 	bool verbose = true;
 	bool dry_run = false;
+
+	bool copy_configurations = false;
+
+	// TODO: one-way versus two-way synchronization
+
+	ConflictResolutionMode conflict_resolution = ConflictResolutionMode::overwrite_with_newer;
 
 	std::string source_directory;
 	std::string target_directory;

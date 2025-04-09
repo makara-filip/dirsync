@@ -49,13 +49,21 @@ struct RecursiveSynchronizationContext {
 		source_configuration_stack, target_configuration_stack;
 	const std::filesystem::directory_entry *source_directory, *target_directory;
 
+	const auto time = std::chrono::system_clock::now();
+
 	RecursiveSynchronizationContext(fs::directory_entry *source, fs::directory_entry *target) {
 		this->source_directory = source;
 		this->target_directory = target;
 	}
 
-	RecursiveSynchronizationContext make_inner(const fs::directory_entry &source) const {
-		RecursiveSynchronizationContext returned()
+	bool source_allows_to_copy(const fs::directory_entry &entry) {
+		// TODO: finish this
+		return true;
+	}
+
+	bool target_accepts(const fs::directory_entry &entry) {
+		// TODO: finish this
+		return true;
 	}
 };
 
@@ -94,30 +102,65 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 		);
 
 		if (fs::is_directory(status)) {
+			// TODO: check if the config allows synchronization
 			RecursiveSynchronizationContext recursive_context = context;
 			recursive_context.source_directory = &source_entry;
 			recursive_context.target_directory = &matching_target_entry;
 			synchronize_directories_recursively(recursive_context, arguments);
 		} else if (fs::is_regular_file(status)) {
-			// TODO
-			// if the source allows the copying,
-			// and if the target allows the pasting,
-			// copy it
-			bool copy = true;
-			if (copy) {
-				if (arguments.verbose) std::cout << "Copying " << source_entry << "\n";
+			// TODO: what about .dirsync files themselves? To copy or not to copy? That is the question.
+			bool is_config_file = source_entry.path().filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
+			if (is_config_file) {
+				continue;
+				// TODO: finish this
 
-				// TODO
-				// if already exists, take action to resolve the conflict
-				// (skip; keep both and rename; override; keep newer version)
+				if (!arguments.copy_configurations) continue;
+				continue;
 			}
 
-			// TODO: what about .dirsync files themselves? To copy or not to copy? That is the question.
+			bool copy = context.source_allows_to_copy(source_entry) && context.target_accepts(source_entry);
+			if (!copy) continue;
+
+			if (arguments.verbose) std::cout << "Copying " << source_entry << "\n";
+
+			fs::file_status matching_target_status = fs::status(matching_target_entry, err);
+			fs::path target_file_path = matching_target_entry.path();
+			fs::copy_options options = fs::copy_options::skip_existing;
+
+			if (fs::exists(matching_target_status)) {
+				if (arguments.conflict_resolution == ConflictResolutionMode::skip) continue;
+
+				fs::file_time_type source_file_written_at = fs::last_write_time(source_entry);
+				fs::file_time_type target_file_written_at = fs::last_write_time(matching_target_entry);
+
+				if (source_file_written_at <= target_file_written_at) {
+					// do not copy older versions, but inform the user
+					// TODO: bi-directional synchronization handles this differently
+					std::cerr << "Skipped copying older version of " << source_entry << "\n";
+					continue;
+				}
+
+				options = fs::copy_options::overwrite_existing;
+
+				if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
+					// options = fs::copy_options::overwrite_existing;
+					// no special treatment?
+				} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
+					auto ticks = context.time.time_since_epoch().count();
+					target_file_path.replace_filename(target_file_path.filename() / std::string(ticks));
+				}
+			}
+
+			if (arguments.dry_run) continue;
+
+			fs::copy_file(source_entry, target_file_path, options, err);
 		}
 	}
 
 	context.source_configuration_stack.pop_back();
 	context.target_configuration_stack.pop_back();
+
+	return error;
 }
 
 int synchronize_directories(const ProgramArguments &arguments) {
@@ -134,7 +177,7 @@ int synchronize_directories(const ProgramArguments &arguments) {
 	if (error) return error;
 
 	RecursiveSynchronizationContext context(&source_directory, &target_directory);
-	error = synchronize_directories_recursively(context);
+	error = synchronize_directories_recursively(context, arguments);
 
 	return error;
 }
