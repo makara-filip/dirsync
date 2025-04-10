@@ -9,6 +9,10 @@ namespace fs = std::filesystem;
 using Reader = DirectoryConfigurationReader;
 using Result = DirectoryConfigurationReadResult;
 
+bool is_config_file(const fs::path &path) {
+	return path.filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
+}
+
 const Reader *supported_readers[1] = {
 	dynamic_cast<Reader *>(new JsonDirConfigReader())
 };

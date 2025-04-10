@@ -49,25 +49,34 @@ struct RecursiveSynchronizationContext {
 		source_configuration_stack, target_configuration_stack;
 	const std::filesystem::directory_entry *source_directory, *target_directory;
 
-	const auto time = std::chrono::system_clock::now();
+	const std::chrono::system_clock::time_point time = std::chrono::system_clock::now();
 
 	RecursiveSynchronizationContext(fs::directory_entry *source, fs::directory_entry *target) {
 		this->source_directory = source;
 		this->target_directory = target;
 	}
 
-	bool source_allows_to_copy(const fs::directory_entry &entry) {
-		// TODO: finish this
+	bool should_copy(const fs::directory_entry &entry, const fs::file_status &status) const {
+		return source_allows_to_copy(entry) && target_accepts(entry, status);
+	}
+
+	private:
+	bool source_allows_to_copy(const fs::directory_entry &entry) const {
+		for (auto it = source_configuration_stack.rbegin(); it != source_configuration_stack.rend(); ++it) {
+			if (!it->has_value()) continue;
+			const DirectoryConfiguration &configuration = it->value();
+			if (!configuration.allows(entry)) return false;
+		}
 		return true;
 	}
 
-	bool target_accepts(const fs::directory_entry &entry) {
-		// TODO: finish this
+	bool target_accepts(const fs::directory_entry &entry, const fs::file_status &status) const {
+		for (auto it = target_configuration_stack.rbegin(); it != target_configuration_stack.rend(); ++it) {
+			if (!it->has_value()) continue;
+			const DirectoryConfiguration &configuration = it->value();
+			if (!configuration.accepts(entry, status)) return false;
+		}
 		return true;
-	}
-
-	bool should_copy(const fs::directory_entry &entry) {
-		return source_allows_to_copy(entry) && target_accepts(entry);
 	}
 };
 
@@ -75,6 +84,7 @@ void synchronize_file(
 	const ProgramArguments &arguments,
 	RecursiveSynchronizationContext &context,
 	const fs::directory_entry &source_file,
+	const fs::file_status &source_status,
 	const fs::directory_entry &target_file,
 	std::error_code &err
 ) {
@@ -82,13 +92,15 @@ void synchronize_file(
 	fs::path target_path = target_file.path();
 	fs::copy_options options = fs::copy_options::skip_existing;
 
+	// TODO: handle OS filesystem case (in)sensitivity
+
 	if (is_config_file(source_file)) {
 		bool target_directory_has_config = context.target_configuration_stack.back().has_value();
 		if (target_directory_has_config || !arguments.copy_configurations) return;
 		goto final;
 	}
 
-	if (!context.should_copy(source_file)) return;
+	if (!context.should_copy(source_file, source_status)) return;
 
 	if (fs::exists(target_status)) {
 		if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
@@ -109,8 +121,8 @@ void synchronize_file(
 		if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
 			// no special treatment
 		} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
-			const auto ticks = context.time.time_since_epoch().count();
-			target_path.replace_filename(target_path.filename() / std::string(ticks));
+			const long long ticks = context.time.time_since_epoch().count();
+			target_path.replace_filename(target_path.filename() / std::to_string(ticks));
 		}
 	}
 
@@ -153,13 +165,13 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 		);
 
 		if (fs::is_directory(status)) {
-			if (!context.should_copy(source_entry)) continue;
+			if (!context.should_copy(source_entry, status)) continue;
 			RecursiveSynchronizationContext recursive_context = context;
 			recursive_context.source_directory = &source_entry;
 			recursive_context.target_directory = &matching_target_entry;
 			error = synchronize_directories_recursively(recursive_context, arguments);
 		} else if (fs::is_regular_file(status)) {
-			synchronize_file(arguments, context, source_entry, matching_target_entry, err);
+			synchronize_file(arguments, context, source_entry, status, matching_target_entry, err);
 		}
 	}
 
