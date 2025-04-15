@@ -80,6 +80,25 @@ struct RecursiveSynchronizationContext {
 	}
 };
 
+void delete_extra_target_entries(const ProgramArguments &arguments, const RecursiveSynchronizationContext &context) {
+	for (const fs::directory_entry &target_entry : fs::directory_iterator(*context.target_directory)) {
+		std::error_code err;
+		const fs::file_status status = fs::status(target_entry, err);
+
+		const fs::directory_entry matching_source_entry(
+			context.source_directory->path() / target_entry.path().filename(),
+			err
+		);
+		const fs::file_status source_status = fs::status(matching_source_entry, err);
+
+		if (fs::exists(source_status)) {
+			if (arguments.verbose) std::cout << "Deleting extra " << target_entry << "\n";
+			if (arguments.dry_run) continue;
+			fs::remove(target_entry, err);
+		}
+	}
+}
+
 void synchronize_file(
 	const ProgramArguments &arguments,
 	RecursiveSynchronizationContext &context,
@@ -149,8 +168,6 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 
 	if (error) return error;
 
-	// TODO: make a composite configuration?
-
 	for (const fs::directory_entry &source_entry : fs::directory_iterator(*context.source_directory)) {
 		std::error_code err;
 		const fs::file_status status = fs::status(source_entry, err);
@@ -174,6 +191,9 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 			synchronize_file(arguments, context, source_entry, status, matching_target_entry, err);
 		}
 	}
+
+	if (arguments.delete_extra_target_files)
+		delete_extra_target_entries(arguments, context);
 
 	context.source_configuration_stack.pop_back();
 	context.target_configuration_stack.pop_back();

@@ -24,6 +24,7 @@ struct ProgramArguments {
 	bool dry_run = false;
 
 	bool copy_configurations = false;
+	bool delete_extra_target_files = false;
 
 	// TODO: one-way versus two-way synchronization
 

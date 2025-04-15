@@ -14,7 +14,7 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 	for (; arg_iter != arguments.end(); ++arg_iter) {
 		const std::string &argument = *arg_iter;
 
-		bool is_flag_or_param = argument.starts_with('-');
+		const bool is_flag_or_param = argument.starts_with('-');
 		if (!is_flag_or_param)
 			break;
 
@@ -24,6 +24,8 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 			verbose = true;
 		} else if (argument == "--dry-run") {
 			dry_run = true;
+		} else if (argument == "-d" || argument == "--delete-extra") {
+			delete_extra_target_files = true;
 		} else if (argument == "-s" || argument == "--skip-existing" || argument == "--safe") {
 			conflict_resolution = ConflictResolutionMode::skip;
 		} else if (argument == "-r" || argument == "--rename") {
