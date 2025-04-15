@@ -30,6 +30,9 @@ int get_directory_configuration(
 			std::cerr << "Parse error in " << config_file_path << std::endl;
 			if (arguments.dry_run) break;
 			return EXIT_CODE_CONFIG_FILE_PARSE_ERROR;
+		} else if (std::holds_alternative<DirectoryConfigurationIncompatible>(result)) {
+			const fs::path config_file_path = directory.path() / reader->config_file_name();
+			std::cerr << "Incompatible configuration in " << config_file_path << std::endl;
 		}
 
 		const DirectoryConfiguration *config = std::get_if<DirectoryConfiguration>(&result);

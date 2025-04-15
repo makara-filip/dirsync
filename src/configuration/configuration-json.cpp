@@ -10,14 +10,16 @@ using Json = nlohmann::json;
 
 AUTOGENERATE_JSON_CONVERSION(Version, major, minor, patch)
 
+const char *CONFIGURATION_VERSION_KEY = "configVersion";
+
 void from_json(const Json &j, DirectoryConfiguration &p) {
-	j.at("configVersion").get_to(p.config_version);
+	j.at(CONFIGURATION_VERSION_KEY).get_to(p.config_version);
 	j.at("exclusionPatterns").get_to(p.exclusion_patterns);
 	j.at("maxFileSize").get_to(*p.max_file_size);
 }
 void to_json(Json &j, const DirectoryConfiguration &p) {
 	j = Json{
-		{"configVersion", p.config_version},
+		{CONFIGURATION_VERSION_KEY, p.config_version},
 		{"exclusionPatterns", p.exclusion_patterns},
 		{"maxFileSize", nullptr}
 	};
@@ -52,6 +54,10 @@ DirectoryConfigurationReadResult JsonDirConfigReader::read_from_directory(
 		return DirectoryConfigurationParseError{};
 
 	try {
+		Version config_version = json.at(CONFIGURATION_VERSION_KEY);
+		if (!config_version.is_compatible_with(PROGRAM_VERSION))
+			return DirectoryConfigurationIncompatible{};
+
 		DirectoryConfiguration result = json.get<DirectoryConfiguration>();
 		return result;
 	} catch (Json::parse_error &) {

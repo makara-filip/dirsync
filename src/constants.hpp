@@ -13,6 +13,18 @@ struct Version {
 	size_t minor = 0;
 	size_t patch = 0;
 
+	std::strong_ordering operator<=>(const Version &) const = default;
+	// default comparisons: https://en.cppreference.com/w/cpp/language/default_comparisons
+
+	bool is_compatible_with(const Version &other) const {
+		if (major != other.major) return false; // breaking changes
+
+		// if major == 0 (unstable, pre-release), semantic versioning is stricter
+		if (major == 0) return *this == other;
+
+		return *this <= other;
+	}
+
 	std::ostream &operator<<(std::ostream &stream) const {
 		stream << major << '.' << minor << '.' << patch;
 		return stream;

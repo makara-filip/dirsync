@@ -58,10 +58,12 @@ struct DirectoryConfiguration {
 
 struct DirectoryConfigurationFileNonexistent {};
 struct DirectoryConfigurationParseError {};
+struct DirectoryConfigurationIncompatible {};
 
 using DirectoryConfigurationReadResult = std::variant<
 	DirectoryConfiguration,
 	DirectoryConfigurationParseError,
+	DirectoryConfigurationIncompatible,
 	DirectoryConfigurationFileNonexistent,
 	std::filesystem::filesystem_error
 >;
