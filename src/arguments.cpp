@@ -24,6 +24,8 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 			verbose = true;
 		} else if (argument == "--dry-run") {
 			dry_run = true;
+		} else if (argument == "--bi" || argument == "--bidirectional") {
+			is_one_way_synchronization = false;
 		} else if (argument == "-d" || argument == "--delete-extra") {
 			delete_extra_target_files = true;
 		} else if (argument == "-s" || argument == "--skip-existing" || argument == "--safe") {

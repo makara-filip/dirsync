@@ -26,7 +26,7 @@ struct ProgramArguments {
 	bool copy_configurations = false;
 	bool delete_extra_target_files = false;
 
-	// TODO: one-way versus two-way synchronization
+	bool is_one_way_synchronization = true;
 
 	ConflictResolutionMode conflict_resolution = ConflictResolutionMode::overwrite_with_newer;
 
