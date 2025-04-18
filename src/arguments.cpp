@@ -37,6 +37,12 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 		}
 	}
 
+	// perform flag compatibility check
+	if (!is_one_way_synchronization && delete_extra_target_files) {
+		delete_extra_target_files = false;
+		std::cerr << "Warning: --delete-extra is disabled, because it is incompatible with --bi|--bidirectional.\n";
+	}
+
 	if (mode == ProgramMode::help)
 		return true;
 
