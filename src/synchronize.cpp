@@ -83,6 +83,22 @@ struct RecursiveSynchronizationContext {
 	}
 };
 
+struct BidirectionalContext {
+	using ConfigurationPair = std::pair<
+		std::optional<DirectoryConfiguration>,
+		std::optional<DirectoryConfiguration>
+	>;
+
+	std::vector<ConfigurationPair> configuration_stack;
+
+	const fs::directory_entry *root_left, *root_right;
+
+	BidirectionalContext(const fs::directory_entry *left, fs::directory_entry *right) {
+		root_left = left;
+		root_right = right;
+	}
+};
+
 void delete_extra_target_entries(const ProgramArguments &arguments, const RecursiveSynchronizationContext &context) {
 	for (const fs::directory_entry &target_entry : fs::directory_iterator(*context.target_directory)) {
 		std::error_code err;
@@ -204,53 +220,105 @@ int synchronize_directories_recursively(RecursiveSynchronizationContext context,
 	return error;
 }
 
+struct child_entry_info {
+	bool exists;
+	fs::directory_entry entry;
+	fs::file_status status;
+
+	child_entry_info(
+		const fs::directory_entry &parent,
+		const std::set<std::string> &collection,
+		const std::string &name
+	) {
+		const auto iterator = collection.find(name);
+
+		exists = iterator != collection.end();
+		entry = fs::directory_entry(parent.path() / name);
+		status = fs::status(entry);
+	}
+
+	constexpr bool is_regular_file() const noexcept {
+		return fs::is_regular_file(status);
+	}
+	constexpr bool is_directory() const noexcept {
+		return fs::is_directory(status);
+	}
+};
+
 int synchronize_directories_bidirectionally(
+	const ProgramArguments &arguments,
+	BidirectionalContext &context,
 	const fs::directory_entry &source_left,
-	const fs::directory_entry &source_right,
-	RecursiveSynchronizationContext &context
+	const fs::directory_entry &source_right
 ) {
-	// TODO: load configuration somehow
+	// add to recursive stack
+	BidirectionalContext::ConfigurationPair pair;
+	get_directory_configuration(source_left, arguments, pair.first);
+	get_directory_configuration(source_right, arguments, pair.second);
+	context.configuration_stack.emplace_back(pair);
 
 	std::set<std::string> left_names, right_names;
 	std::set<std::string> all_entry_names;
 
-	for (const auto &entry : fs::directory_iterator(*context.source_directory)) {
-		const std::string filename = entry.path().filename().string();
-		// left_entries[filename] = entry;
-		left_names.insert(filename);
-		all_entry_names.insert(filename);
-	}
-	for (const auto &entry : fs::directory_iterator(*context.target_directory)) {
-		const std::string filename = entry.path().filename().string();
-		right_names.insert(filename);
-		// right_entries[filename] = entry;
-		all_entry_names.insert(filename);
-	}
+	auto get_names = [&all_entry_names](
+		const fs::directory_entry &directory,
+		const std::optional<DirectoryConfiguration> &config,
+		std::set<std::string> &out_names) -> void {
+		for (const auto &entry : fs::directory_iterator(directory)) {
+			const std::string filename = entry.path().filename().string();
+			if (config.has_value() && !config->allows(entry)) continue;
+			out_names.insert(filename);
+			all_entry_names.insert(filename);
+		}
+	};
+
+	get_names(source_left, pair.first, left_names);
+	get_names(source_right, pair.second, right_names);
 
 	// std::set<std::string> all_entry_names;
 	// for (const std::string &name : std::views::keys(left_entries)) all_entry_names.insert(name);
 	// for (const std::string &name : std::views::keys(right_entries)) all_entry_names.insert(name);
 
 	for (const std::string &name : all_entry_names) {
-		const auto left_it = left_names.find(name);
-		const auto right_it = right_names.find(name);
-		bool left_exists = left_it != left_names.end();
-		bool right_exists = right_it != right_names.end();
+		child_entry_info left(source_left, left_names, name);
+		child_entry_info right(source_right, right_names, name);
 
-		fs::directory_entry left_entry(source_left.path() / name);
-		fs::directory_entry right_entry(source_right.path() / name);
+		if (left.exists ^ right.exists) {
+			// if exactly one of the two exist, switch to normal one-directional synchronization
 
-		fs::file_status left_status = fs::status(left_entry);
-		fs::file_status right_status = fs::status(right_entry);
+			child_entry_info *source, *target;
+			if (left.exists) {
+				source = &left;
+				target = &right;
+			} else {
+				source = &right;
+				target = &left;
+			}
 
-		// if exactly one of the two exist, switch to normal one-directional synchronization
-		if (left_exists ^ right_exists) {
-			// TODO: add to context?
-			// TODO: correct order
-			// synchronize_directories_recursively(context, arguments);
+			if (source->is_directory()) {
+				RecursiveSynchronizationContext single_direction_context(&source->entry, &target->entry);
+				synchronize_directories_recursively(single_direction_context, arguments);
+			} else if (fs::is_regular_file(source->status)) {
+				if (arguments.verbose) std::cout << "Copying " << source->entry << "\n";
+				if (arguments.dry_run) continue;
+				fs::copy_options options = fs::copy_options::skip_existing;
+				std::error_code err;
+				fs::copy_file(source->entry, target->entry, options, err);
+			}
 		} else {
 			// both right and left exist, make a decision how to declare conflicts
 			// and if so, how to handle the conflict
+
+			if (left.is_regular_file() && right.is_regular_file()) {
+				// bool copy =
+				// something
+			} else if (left.is_directory() && right.is_directory()) {
+				// something
+			} else {
+				// incompatible types
+				// TODO: handle symbolic links
+				std::cerr << "Incompatible directory entry types at " << left.entry << " and " << right.entry << "\n";
+			}
 		}
 	}
 
@@ -279,12 +347,13 @@ int synchronize_directories(const ProgramArguments &arguments) {
 		error = verify_source_directory(source_path, source_directory, source_status);
 		if (error) return error;
 		error = verify_source_directory(target_path, target_directory, target_status);
+		if (error) return error;
 
 		fs::directory_entry source_left = source_directory;
 		fs::directory_entry source_right = target_directory;
 
-		// TODO: recursive context?
-		error = synchronize_directories_bidirectionally(source_left, source_right);
+		BidirectionalContext context(&source_left, &source_right);
+		error = synchronize_directories_bidirectionally(arguments, context, source_left, source_right);
 	}
 
 	return error;
