@@ -47,6 +47,14 @@ int ensure_target_directory(const fs::path &path, fs::directory_entry &directory
 	return 0;
 }
 
+std::string insert_timestamp_to_filename(const fs::directory_entry &entry) {
+	const unsigned long long timestamp = entry.last_write_time().time_since_epoch().count();
+	return entry.path().stem().string()
+		+ "-"
+		+ std::to_string(timestamp)
+		+ entry.path().extension().string();
+}
+
 struct RecursiveSynchronizationContext {
 	std::vector<std::optional<DirectoryConfiguration>>
 		source_configuration_stack, target_configuration_stack;
@@ -118,6 +126,50 @@ void delete_extra_target_entries(const ProgramArguments &arguments, const Recurs
 	}
 }
 
+void synchronize_files_bidirectionally(
+	const ProgramArguments &arguments,
+	const fs::directory_entry &left,
+	const fs::directory_entry &right
+) {
+	if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
+
+	if (left.last_write_time() == right.last_write_time())
+		// considered equal
+		return;
+
+	const fs::directory_entry *older, *newer;
+	if (left.last_write_time() < right.last_write_time()) {
+		older = &left;
+		newer = &right;
+	} else {
+		older = &right;
+		newer = &left;
+	}
+	const fs::directory_entry *target = older;
+
+	fs::path target_path;
+	fs::copy_options options = fs::copy_options::overwrite_existing;
+	std::error_code err;
+
+	// if config file, keep newer, do not rename
+	if (is_config_file(left) && is_config_file(right)) {
+		if (!arguments.copy_configurations) return;
+		goto final;
+	}
+
+	if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
+		// no special action
+		target_path = target->path();
+	} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
+		target_path = target->path().parent_path() / insert_timestamp_to_filename(*target);
+	}
+
+final:
+	if (arguments.verbose) std::cout << "Copying " << newer << "\n";
+	if (arguments.dry_run) return;
+	fs::copy_file(*newer, target_path, options, err);
+}
+
 void synchronize_file(
 	const ProgramArguments &arguments,
 	const RecursiveSynchronizationContext &context,
@@ -159,8 +211,7 @@ void synchronize_file(
 		if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
 			// no special treatment
 		} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
-			const long long ticks = context.time.time_since_epoch().count();
-			target_path.replace_filename(target_path.filename() / std::to_string(ticks));
+			target_path.replace_filename(insert_timestamp_to_filename(target_file));
 		}
 	}
 
@@ -237,12 +288,8 @@ struct child_entry_info {
 		status = fs::status(entry);
 	}
 
-	constexpr bool is_regular_file() const noexcept {
-		return fs::is_regular_file(status);
-	}
-	constexpr bool is_directory() const noexcept {
-		return fs::is_directory(status);
-	}
+	constexpr bool is_regular_file() const noexcept { return fs::is_regular_file(status); }
+	constexpr bool is_directory() const noexcept { return fs::is_directory(status); }
 };
 
 int synchronize_directories_bidirectionally(
@@ -275,10 +322,6 @@ int synchronize_directories_bidirectionally(
 	get_names(source_left, pair.first, left_names);
 	get_names(source_right, pair.second, right_names);
 
-	// std::set<std::string> all_entry_names;
-	// for (const std::string &name : std::views::keys(left_entries)) all_entry_names.insert(name);
-	// for (const std::string &name : std::views::keys(right_entries)) all_entry_names.insert(name);
-
 	for (const std::string &name : all_entry_names) {
 		child_entry_info left(source_left, left_names, name);
 		child_entry_info right(source_right, right_names, name);
@@ -295,6 +338,8 @@ int synchronize_directories_bidirectionally(
 				target = &left;
 			}
 
+			// TODO: is there loss of configuration data?
+
 			if (source->is_directory()) {
 				RecursiveSynchronizationContext single_direction_context(&source->entry, &target->entry);
 				synchronize_directories_recursively(single_direction_context, arguments);
@@ -306,17 +351,13 @@ int synchronize_directories_bidirectionally(
 				fs::copy_file(source->entry, target->entry, options, err);
 			}
 		} else {
-			// both right and left exist, make a decision how to declare conflicts
-			// and if so, how to handle the conflict
-
+			// both right and left exist
 			if (left.is_regular_file() && right.is_regular_file()) {
-				// bool copy =
-				// something
+				synchronize_files_bidirectionally(arguments, left.entry, right.entry);
 			} else if (left.is_directory() && right.is_directory()) {
-				// something
+				synchronize_directories_bidirectionally(arguments, context, left.entry, right.entry);
 			} else {
-				// incompatible types
-				// TODO: handle symbolic links
+				// incompatible types; symbolic links are not supported
 				std::cerr << "Incompatible directory entry types at " << left.entry << " and " << right.entry << "\n";
 			}
 		}
