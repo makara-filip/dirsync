@@ -1,6 +1,7 @@
 #include "synchronize.hpp"
 #include "constants.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <set>
@@ -9,6 +10,23 @@
 #include "configuration/configuration.hpp"
 
 namespace fs = std::filesystem;
+
+std::string get_formatted_time(const fs::file_time_type &time) {
+	return std::format("{:%F-%H-%M-%S}", time);
+}
+
+std::string get_formatted_time(const std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> &time) {
+	return std::format("{:%F-%H-%M-%S}", time);
+}
+
+std::chrono::sys_time<std::chrono::seconds> convert_to_sys_time(const fs::file_time_type &file_time) {
+	using namespace std::chrono;
+
+	const time_point<system_clock, nanoseconds> system_time_nano = file_clock::to_sys(file_time);
+	const time_point<system_clock, seconds> system_time_in_seconds = time_point_cast<seconds>(system_time_nano);
+
+	return system_time_in_seconds;
+}
 
 int verify_source_directory(const fs::path &path, fs::directory_entry &directory, fs::file_status &status) {
 	try {
@@ -47,10 +65,9 @@ int ensure_target_directory(const fs::path &path, fs::directory_entry &directory
 }
 
 std::string insert_timestamp_to_filename(const fs::directory_entry &entry) {
-	const unsigned long long timestamp = entry.last_write_time().time_since_epoch().count();
 	return entry.path().stem().string()
 		+ "-"
-		+ std::to_string(timestamp)
+		+ get_formatted_time(convert_to_sys_time(entry.last_write_time()))
 		+ entry.path().extension().string();
 }
 
@@ -133,7 +150,11 @@ void synchronize_files_bidirectionally(
 ) {
 	if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
 
-	if (left.last_write_time() == right.last_write_time())
+	const std::chrono::sys_time<std::chrono::seconds>
+		left_write_time = convert_to_sys_time(left.last_write_time()),
+		right_write_time = convert_to_sys_time(right.last_write_time());
+
+	if (left_write_time == right_write_time)
 		// considered equal
 		return;
 
@@ -415,3 +436,4 @@ int synchronize_directories(const ProgramArguments &arguments) {
 
 	return error;
 }
+
