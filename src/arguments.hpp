@@ -6,7 +6,8 @@
 
 enum class ProgramMode {
 	help,
-	synchronize
+	synchronize,
+	test
 	// TODO: other options such as:
 	// - ignore <file-or-directory>: adds the file/directrory to the .dirsync config file
 };

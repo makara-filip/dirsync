@@ -18,4 +18,6 @@ add_executable(dirsync main.cpp
         configuration/configuration-json.hpp
         wildcards.cpp
         wildcards.hpp
+        tests.cpp
+        tests.hpp
 )

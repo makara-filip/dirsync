@@ -20,6 +20,8 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 
 		if (argument == "-h" || argument == "--help") {
 			mode = ProgramMode::help;
+		} else if (argument == "--test") {
+			mode = ProgramMode::test;
 		} else if (argument == "--verbose") {
 			verbose = true;
 		} else if (argument == "--dry-run") {
@@ -43,8 +45,11 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 		std::cerr << "Warning: --delete-extra is disabled, because it is incompatible with --bi|--bidirectional.\n";
 	}
 
-	if (mode == ProgramMode::help)
+	if (mode == ProgramMode::help || mode == ProgramMode::test) {
+		if (arg_iter != arguments.end())
+			std::cerr << "Warning: ignoring specified positional arguments." << std::endl;
 		return true;
+	}
 
 	if (arg_iter == arguments.end()) {
 		std::cerr << "Error: source directory unspecified." << std::endl;

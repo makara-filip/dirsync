@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -6,8 +5,9 @@
 #include "constants.hpp"
 #include "help.hpp"
 #include "synchronize.hpp"
+#include "tests.hpp"
 
-int main(int argc, char **argv) {
+int main(const int argc, char **argv) {
 	const std::vector<std::string> args(argv, argv + argc);
 	ProgramArguments arguments;
 	if (!arguments.try_parse(args))
@@ -15,9 +15,10 @@ int main(int argc, char **argv) {
 
 	if (arguments.mode == ProgramMode::help) {
 		print_help();
+	} else if (arguments.mode == ProgramMode::test) {
+		return run_tests();
 	} else if (arguments.mode == ProgramMode::synchronize) {
-		int code = synchronize_directories(arguments);
-		return code;
+		return synchronize_directories(arguments);
 	}
 
 	return 0;
