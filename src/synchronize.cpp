@@ -186,7 +186,7 @@ void synchronize_files_bidirectionally(
 	}
 
 final:
-	if (arguments.verbose) std::cout << "Copying " << newer << "\n";
+	if (arguments.verbose) std::cout << "Copying " << *newer << "\n";
 	if (arguments.dry_run) return;
 	fs::create_directories(target_path.parent_path(), err);
 	fs::copy_file(*newer, target_path, options, err);

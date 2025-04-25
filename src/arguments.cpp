@@ -3,7 +3,7 @@
 #include <iostream>
 
 bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
-	if (arguments.size() < 3) {
+	if (arguments.size() < 2) {
 		std::cerr << "Error: Too few arguments." << std::endl;
 		std::cerr << "Usage: dirsync [--help] [source-directory] [target-directory]" << std::endl;
 		return false;
