@@ -38,7 +38,7 @@ bool file_content_equals(const fs::path &file, const std::string &content) {
 	return file_stream.eof() && str_stream.eof();
 }
 
-void cleanup(const fs::path &path) {
+void remove_recursively(const fs::path &path) {
 	std::error_code ec;
 	fs::remove_all(path, ec);
 }
@@ -46,65 +46,95 @@ void cleanup(const fs::path &path) {
 constexpr std::string old_version_content = "old version";
 constexpr std::string new_version_content = "new version";
 
-void test_one_way_copy_new_files() {
+class Test {
+	public:
 	const fs::path source = "test/source";
 	const fs::path target = "test/target";
-	cleanup(source);
-	cleanup(target);
+	int result = 0;
 
-	create_file(source / "root.txt", "root");
-	create_file(source / "hello.ignored.txt", "hello");
-	create_file(source / "first" / "recursive.ignored.txt");
-	create_file(source / "ignored-directory" / "ignored-by-parent.txt");
-	json source_config = {
-		{
-			"configVersion", {
-				{"major", 0},
-				{"minor", 0},
-				{"patch", 0},
-			}
-		},
-		{"maxFileSize", 100},
-		{"exclusionPatterns", {"*.ignored.txt", "ignored-directory"}},
+	Test() = default;
+
+	virtual void prepare();
+	virtual void perform();
+	virtual void assert_validity();
+	virtual void cleanup();
+
+	virtual ~Test() noexcept = default;
+};
+
+class SimpleOneWayTest final : public Test {
+	public:
+	void prepare() override {
+		remove_recursively(source);
+		remove_recursively(target);
+
+		create_file(source / "root.txt", "root");
+		create_file(source / "hello.ignored.txt", "hello");
+		create_file(source / "first" / "recursive.ignored.txt");
+		create_file(source / "ignored-directory" / "ignored-by-parent.txt");
+		const json source_config = {
+			{
+				"configVersion", {
+					{"major", 0},
+					{"minor", 0},
+					{"patch", 0},
+				}
+			},
+			{"maxFileSize", 100},
+			{"exclusionPatterns", {"*.ignored.txt", "ignored-directory"}},
+		};
+		std::ofstream file(source / ".dirsync.json");
+		file << source_config;
+		file.close();
+
+		create_file(target / "conflicts" / "different.txt", old_version_content);
+		create_file(source / "conflicts" / "different.txt", new_version_content);
+
+		create_file(source / "conflicts" / "skip-older.txt", old_version_content);
+		create_file(target / "conflicts" / "skip-older.txt", new_version_content);
+	}
+
+	void perform() override {
+		ProgramArguments args;
+		args.source_directory = source.string();
+		args.target_directory = target.string();
+		args.is_one_way_synchronization = true;
+		args.verbose = true;
+
+		result = synchronize_directories(args);
 	};
-	std::ofstream file(source / ".dirsync.json");
-	file << source_config;
-	file.close();
 
-	create_file(target / "conflicts" / "different.txt", old_version_content);
-	create_file(source / "conflicts" / "different.txt", new_version_content);
+	void assert_validity() override {
+		assert(result == 0);
 
-	create_file(source / "conflicts" / "skip-older.txt", old_version_content);
-	create_file(target / "conflicts" / "skip-older.txt", new_version_content);
+		assert(fs::exists(target / "root.txt"));
+		assert(file_equals(source / "root.txt", target / "root.txt"));
 
-	ProgramArguments args;
-	args.source_directory = source.string();
-	args.target_directory = target.string();
-	args.is_one_way_synchronization = true;
-	args.verbose = true;
+		assert(!fs::exists(target / "hello.ignored.txt"));
+		assert(!fs::exists(target/ "first" / "recursive.ignored.txt"));
+		assert(!fs::exists(target/ "ignored-directory" / "ignored-by-parent.txt"));
 
-	const int result = synchronize_directories(args);
-	assert(result == 0);
+		assert(file_content_equals(target / "conflicts" / "different.txt", new_version_content));
+		assert(file_equals(
+			source / "conflicts" / "different.txt",
+			target / "conflicts" / "different.txt"
+		));
 
-	assert(fs::exists(target / "root.txt"));
-	assert(file_equals(source / "root.txt", target / "root.txt"));
+		assert(file_content_equals(target / "conflicts" / "skip-older.txt", new_version_content));
+	}
 
-	assert(!fs::exists(target / "hello.ignored.txt"));
-	assert(!fs::exists(target/ "first" / "recursive.ignored.txt"));
-	assert(!fs::exists(target/ "ignored-directory" / "ignored-by-parent.txt"));
-
-	assert(file_content_equals(target / "conflicts" / "different.txt", new_version_content));
-	assert(file_equals(
-		source / "conflicts" / "different.txt",
-		target / "conflicts" / "different.txt"
-	));
-
-	assert(file_content_equals(target / "conflicts" / "skip-older.txt", new_version_content));
-
-	cleanup(source);
-	cleanup(target);
-}
+	void cleanup() override {
+		remove_recursively(source);
+		remove_recursively(target);
+	}
+};
 
 int run_tests() {
-	test_one_way_copy_new_files();
+	SimpleOneWayTest test;
+	test.prepare();
+	test.perform();
+	test.assert_validity();
+	test.cleanup();
+
+	return 0;
 }
