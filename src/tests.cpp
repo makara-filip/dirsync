@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include "arguments.hpp"
 #include "json.hpp"
@@ -54,10 +55,10 @@ class Test {
 
 	Test() = default;
 
-	virtual void prepare();
-	virtual void perform();
-	virtual void assert_validity();
-	virtual void cleanup();
+	virtual void prepare() = 0;
+	virtual void perform() = 0;
+	virtual void assert_validity() = 0;
+	virtual void cleanup() = 0;
 
 	virtual ~Test() noexcept = default;
 };
@@ -129,12 +130,69 @@ class SimpleOneWayTest final : public Test {
 	}
 };
 
+class SimpleTwoWayTest final : public Test {
+	const fs::path file_in_source_only = source / "source-only.txt";
+	const fs::path file_in_target_only = target / "target-only.txt";
+
+	constexpr static std::string common_filename = "common.txt";
+	const fs::path file_in_both_older = source / common_filename;
+	const fs::path file_in_both_newer = target / common_filename;
+
+	public:
+	void prepare() override {
+		remove_recursively(source);
+		remove_recursively(target);
+
+		create_file(file_in_both_older, old_version_content);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+		create_file(file_in_both_newer, new_version_content);
+
+		create_file(file_in_source_only);
+		create_file(file_in_target_only);
+	}
+
+	void perform() override {
+		ProgramArguments args;
+		args.source_directory = source.string();
+		args.target_directory = target.string();
+		args.is_one_way_synchronization = false; // testing this behaviour
+		args.verbose = true;
+
+		result = synchronize_directories(args);
+	}
+
+	void assert_validity() override {
+		assert(result == 0);
+
+		// assert the existence of asymmetrical files
+		assert(fs::exists(source / file_in_target_only.filename()));
+		assert(fs::exists(target / file_in_source_only.filename()));
+
+		// newer version should overwrite the older one
+		assert(file_equals(file_in_both_older, file_in_both_newer));
+		assert(file_content_equals(file_in_both_older, new_version_content));
+	}
+
+	void cleanup() override {
+		remove_recursively(source);
+		remove_recursively(target);
+	}
+};
+
 int run_tests() {
+	std::cout << "Test 1: simple one-way synchronization with default settings" << std::endl;
 	SimpleOneWayTest test;
 	test.prepare();
 	test.perform();
 	test.assert_validity();
 	test.cleanup();
+
+	std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
+	SimpleTwoWayTest test2;
+	test2.prepare();
+	test2.perform();
+	test2.assert_validity();
+	test2.cleanup();
 
 	return 0;
 }
