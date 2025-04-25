@@ -179,6 +179,42 @@ class SimpleTwoWayTest final : public Test {
 	}
 };
 
+class ConflictRenamingTest final : public Test {
+	constexpr static std::string common_filename = "common.txt";
+	const fs::path common_file_left = source / common_filename;
+	const fs::path common_file_right = target / common_filename;
+
+	fs::file_time_type older_file_time;
+
+	public:
+	void prepare() override {
+		remove_recursively(source);
+		remove_recursively(target);
+
+		create_file(common_file_left);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+		create_file(common_file_right);
+
+		older_file_time = fs::last_write_time(common_file_left);
+	}
+
+	void perform() override {
+		ProgramArguments args;
+		args.source_directory = source.string();
+		args.target_directory = target.string();
+		args.is_one_way_synchronization = true;
+		args.conflict_resolution = ConflictResolutionMode::rename;
+		args.verbose = true;
+
+		result = synchronize_directories(args);
+	}
+
+	void assert_validity() override {
+		assert(result == 0);
+	}
+	void cleanup() override;
+}
+
 int run_tests() {
 	std::cout << "Test 1: simple one-way synchronization with default settings" << std::endl;
 	SimpleOneWayTest test;
