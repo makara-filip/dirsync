@@ -66,15 +66,15 @@ struct RecursiveSynchronizationContext {
 	}
 
 	bool should_copy(const fs::directory_entry &entry, const fs::file_status &status) const {
-		return source_allows_to_copy(entry) && target_accepts(entry, status);
+		return source_allows_to_copy(entry, status) && target_accepts(entry, status);
 	}
 
 	private:
-	bool source_allows_to_copy(const fs::directory_entry &entry) const {
+	bool source_allows_to_copy(const fs::directory_entry &entry, const fs::file_status &status) const {
 		for (auto it = source_configuration_stack.rbegin(); it != source_configuration_stack.rend(); ++it) {
 			if (!it->has_value()) continue;
 			const DirectoryConfiguration &configuration = it->value();
-			if (!configuration.allows(entry)) return false;
+			if (!configuration.allows(entry, status)) return false;
 		}
 		return true;
 	}
@@ -99,10 +99,8 @@ struct BidirectionalContext {
 
 	const fs::directory_entry *root_left, *root_right;
 
-	BidirectionalContext(const fs::directory_entry *left, fs::directory_entry *right) {
-		root_left = left;
-		root_right = right;
-	}
+	BidirectionalContext(const fs::directory_entry *left, const fs::directory_entry *right)
+		: root_left(left), root_right(right) {}
 };
 
 void delete_extra_target_entries(
@@ -169,6 +167,7 @@ void synchronize_files_bidirectionally(
 final:
 	if (arguments.verbose) std::cout << "Copying " << newer << "\n";
 	if (arguments.dry_run) return;
+	fs::create_directories(target_path.parent_path(), err);
 	fs::copy_file(*newer, target_path, options, err);
 }
 
@@ -203,7 +202,6 @@ void synchronize_file(
 		if (source_written_at == target_written_at) return;
 		if (source_written_at < target_written_at) {
 			// do not copy older versions, but inform the user
-			// TODO: bi-directional synchronization handles this differently
 			std::cout << "Skipped copying older version of " << source_file << "\n";
 			return;
 		}
@@ -220,6 +218,7 @@ void synchronize_file(
 final:
 	if (arguments.verbose) std::cout << "Copying " << source_file << "\n";
 	if (arguments.dry_run) return;
+	fs::create_directories(target_path.parent_path(), err);
 	fs::copy_file(source_file, target_path, options, err);
 }
 
@@ -323,7 +322,7 @@ int synchronize_directories_bidirectionally(
 		std::set<std::string> &out_names) -> void {
 		for (const auto &entry : fs::directory_iterator(directory)) {
 			const std::string filename = entry.path().filename().string();
-			if (config.has_value() && !config->allows(entry)) continue;
+			if (config.has_value() && !config->allows(entry, fs::status(entry))) continue;
 			out_names.insert(filename);
 			all_entry_names.insert(filename);
 		}

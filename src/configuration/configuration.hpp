@@ -33,10 +33,11 @@ struct DirectoryConfiguration {
 	std::vector<std::string> exclusion_patterns;
 	std::optional<std::uintmax_t> max_file_size;
 
-	bool allows(const std::filesystem::directory_entry &entry) const {
+	bool allows(const std::filesystem::directory_entry &entry, const std::filesystem::file_status &status) const {
 		// const std::string filename = entry.path().filename().string();
 		// TODO: implement "not accepting" and "not allowing" patterns?
-		return true;
+		// return true;
+		return accepts(entry, status);
 	}
 
 	bool accepts(const std::filesystem::directory_entry &entry, const std::filesystem::file_status &status) const {
@@ -52,7 +53,8 @@ struct DirectoryConfiguration {
 				return false;
 		}
 
-		return allows(entry);
+		// return allows(entry);
+		return true;
 	}
 };
 

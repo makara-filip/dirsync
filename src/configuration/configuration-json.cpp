@@ -35,15 +35,15 @@ DirectoryConfigurationReadResult JsonDirConfigReader::read_from_directory(
 	const fs::path file_path = directory.path() / config_file_name();
 	std::error_code error;
 	const fs::file_status file_status = fs::status(file_path, error);
+	if (!fs::exists(file_status))
+		return DirectoryConfigurationFileNonexistent{};
+
 	if (error) {
 		if (arguments.verbose)
 			std::cerr << "Error: Failed to check the directory configuration details in: "
-				<< file_path << std::endl
-				<< "-> system error: " << error.message() << std::endl;
+				<< file_path << ": " << error.message() << std::endl;
 		return fs::filesystem_error("Failed to check the directory configuration details", error);
 	}
-	if (!fs::exists(file_status))
-		return DirectoryConfigurationFileNonexistent{};
 
 	std::ifstream file_stream(file_path);
 	if (!file_stream.good())
