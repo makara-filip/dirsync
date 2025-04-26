@@ -15,7 +15,11 @@ const char *CONFIGURATION_VERSION_KEY = "configVersion";
 void from_json(const Json &j, DirectoryConfiguration &p) {
 	j.at(CONFIGURATION_VERSION_KEY).get_to(p.config_version);
 	j.at("exclusionPatterns").get_to(p.exclusion_patterns);
-	j.at("maxFileSize").get_to(*p.max_file_size);
+	if (j.contains("maxFileSize")) {
+		const std::int64_t *max_file_size_ptr = j.at("maxFileSize").get_ptr<const std::int64_t *>();
+		if (max_file_size_ptr != nullptr)
+			p.max_file_size = *max_file_size_ptr;
+	}
 }
 void to_json(Json &j, const DirectoryConfiguration &p) {
 	j = Json{
