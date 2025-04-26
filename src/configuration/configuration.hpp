@@ -44,7 +44,7 @@ struct DirectoryConfiguration {
 		const std::string filename = entry.path().filename().string();
 
 		if (std::filesystem::is_regular_file(status) && max_file_size.has_value()) {
-			const std::uintmax_t size = std::filesystem::file_size(filename);
+			const std::uintmax_t size = entry.file_size();
 			if (size > *max_file_size) return false;
 		}
 
