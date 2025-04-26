@@ -12,11 +12,9 @@
 namespace fs = std::filesystem;
 
 std::string get_formatted_time(const fs::file_time_type &time) {
-	return std::format("{:%F-%H-%M-%S}", time);
-}
-
-std::string get_formatted_time(const std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> &time) {
-	return std::format("{:%F-%H-%M-%S}", time);
+	using namespace std::chrono;
+	const time_point<file_clock, seconds> time_in_seconds = time_point_cast<seconds>(time);
+	return std::format("{:%F-%H-%M-%S}", time_in_seconds);
 }
 
 std::chrono::sys_time<std::chrono::seconds> convert_to_sys_time(const fs::file_time_type &file_time) {
@@ -67,7 +65,7 @@ int ensure_target_directory(const fs::path &path, fs::directory_entry &directory
 std::string insert_timestamp_to_filename(const fs::directory_entry &entry) {
 	return entry.path().stem().string()
 		+ "-"
-		+ get_formatted_time(convert_to_sys_time(entry.last_write_time()))
+		+ get_formatted_time(entry.last_write_time())
 		+ entry.path().extension().string();
 }
 

@@ -181,8 +181,8 @@ class SimpleTwoWayTest final : public Test {
 
 class ConflictRenamingTest final : public Test {
 	constexpr static std::string common_filename = "common.txt";
-	const fs::path common_file_left = source / common_filename;
-	const fs::path common_file_right = target / common_filename;
+	const fs::path common_file_source = source / common_filename;
+	const fs::path common_file_target = target / common_filename;
 
 	fs::file_time_type older_file_time;
 
@@ -191,11 +191,11 @@ class ConflictRenamingTest final : public Test {
 		remove_recursively(source);
 		remove_recursively(target);
 
-		create_file(common_file_left);
+		create_file(common_file_target, old_version_content);
 		std::this_thread::sleep_for(std::chrono::seconds(2));
-		create_file(common_file_right);
+		create_file(common_file_source, new_version_content);
 
-		older_file_time = fs::last_write_time(common_file_left);
+		older_file_time = fs::last_write_time(common_file_target);
 	}
 
 	void perform() override {
@@ -211,8 +211,25 @@ class ConflictRenamingTest final : public Test {
 
 	void assert_validity() override {
 		assert(result == 0);
+
+		// build the expected renamed path for the older file (left one)
+		const std::string timestamp = get_formatted_time(older_file_time);
+		const fs::path file_with_timestamp = target / ("common-" + timestamp + ".txt");
+
+		assert(fs::exists(file_with_timestamp));
+		assert(file_content_equals(file_with_timestamp, new_version_content));
+
+		// keeps the original source file:
+		assert(file_content_equals(common_file_source, new_version_content));
+		// keeps the old version:
+		assert(file_content_equals(common_file_target, old_version_content));
+		assert(fs::exists(file_with_timestamp));
+		assert(file_content_equals(file_with_timestamp, new_version_content));
 	}
-	void cleanup() override;
+	void cleanup() override {
+		remove_recursively(source);
+		remove_recursively(target);
+	}
 };
 
 int run_tests() {
@@ -229,6 +246,13 @@ int run_tests() {
 	test2.perform();
 	test2.assert_validity();
 	test2.cleanup();
+
+	std::cout << "Test 3: one-way synchronization with conflict renaming" << std::endl;
+	ConflictRenamingTest test3;
+	test3.prepare();
+	test3.perform();
+	test3.assert_validity();
+	test3.cleanup();
 
 	return 0;
 }
