@@ -20,6 +20,13 @@ void create_file(const fs::path &path, const std::string &content = "") {
 	file << content;
 }
 
+void create_large_file(const fs::path &path, const unsigned int size) {
+	fs::create_directories(path.parent_path());
+	std::ofstream file(path);
+	for (int i = 0; i < size; i++)
+		file << 'x';
+}
+
 bool file_equals(const fs::path &file1, const fs::path &file2) {
 	std::ifstream f1(file1), f2(file2);
 	std::string line1, line2;
@@ -103,7 +110,7 @@ class SimpleOneWayTest final : public Test {
 		args.verbose = true;
 
 		result = synchronize_directories(args);
-	};
+	}
 
 	void assert_validity() override {
 		assert(result == 0);
@@ -232,27 +239,84 @@ class ConflictRenamingTest final : public Test {
 	}
 };
 
-int run_tests() {
-	std::cout << "Test 1: simple one-way synchronization with default settings" << std::endl;
-	SimpleOneWayTest test;
+class MaxFileSizeTest final : public Test {
+	const fs::path large_file_source = source / "large.txt";
+	const fs::path large_file_target_should_not_exist = target / "large.txt";
+
+	public:
+	void prepare() override {
+		remove_recursively(source);
+		remove_recursively(target);
+
+		create_large_file(large_file_source, 50); // 50 byte long file
+
+		const json target_config = {
+			{
+				"configVersion", {
+					{"major", 0},
+					{"minor", 0},
+					{"patch", 0},
+				}
+			},
+			{"exclusionPatterns", json::array()},
+			{"maxFileSize", 20},
+		};
+		create_directory(large_file_target_should_not_exist.parent_path());
+		std::ofstream file(target / ".dirsync.json");
+		if (!file.good()) {
+			std::cerr << "Dirsync configuration could not be saved." << std::endl;
+			return;
+		}
+		file << target_config;
+		file.close();
+	}
+
+	void perform() override {
+		ProgramArguments args;
+		args.source_directory = source.string();
+		args.target_directory = target.string();
+		args.is_one_way_synchronization = true;
+		args.verbose = true;
+
+		result = synchronize_directories(args);
+	}
+
+	void assert_validity() override {
+		assert(result == 0);
+
+		// the large file should not be copied, because the target does not accept such large files
+		assert(!fs::exists(large_file_target_should_not_exist));
+	}
+
+	void cleanup() override {
+		remove_recursively(source);
+		remove_recursively(target);
+	}
+};
+
+void perform_single_test(Test &test) {
 	test.prepare();
 	test.perform();
 	test.assert_validity();
 	test.cleanup();
+}
+
+int run_tests() {
+	std::cout << "Test 1: simple one-way synchronization with default settings" << std::endl;
+	SimpleOneWayTest test;
+	// perform_single_test(test);
 
 	std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
 	SimpleTwoWayTest test2;
-	test2.prepare();
-	test2.perform();
-	test2.assert_validity();
-	test2.cleanup();
+	// perform_single_test(test2);
 
 	std::cout << "Test 3: one-way synchronization with conflict renaming" << std::endl;
 	ConflictRenamingTest test3;
-	test3.prepare();
-	test3.perform();
-	test3.assert_validity();
-	test3.cleanup();
+	// perform_single_test(test3);
+
+	std::cout << "Test 4: too large files are not accepted in target" << std::endl;
+	MaxFileSizeTest test4;
+	perform_single_test(test4);
 
 	return 0;
 }
