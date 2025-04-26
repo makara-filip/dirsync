@@ -213,7 +213,7 @@ class ConflictRenamingTest final : public Test {
 		assert(result == 0);
 	}
 	void cleanup() override;
-}
+};
 
 int run_tests() {
 	std::cout << "Test 1: simple one-way synchronization with default settings" << std::endl;
