@@ -17,13 +17,9 @@ std::string get_formatted_time(const fs::file_time_type &time) {
 	return std::format("{:%F-%H-%M-%S}", time_in_seconds);
 }
 
-std::chrono::sys_time<std::chrono::seconds> convert_to_sys_time(const fs::file_time_type &file_time) {
+std::chrono::file_time<std::chrono::seconds> reduce_precision_to_seconds(const fs::file_time_type &file_time) {
 	using namespace std::chrono;
-
-	const time_point<system_clock, nanoseconds> system_time_nano = file_clock::to_sys(file_time);
-	const time_point<system_clock, seconds> system_time_in_seconds = time_point_cast<seconds>(system_time_nano);
-
-	return system_time_in_seconds;
+	return time_point_cast<seconds>(file_time);
 }
 
 int verify_source_directory(const fs::path &path, fs::directory_entry &directory, fs::file_status &status) {
@@ -148,9 +144,9 @@ void synchronize_files_bidirectionally(
 ) {
 	if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
 
-	const std::chrono::sys_time<std::chrono::seconds>
-		left_write_time = convert_to_sys_time(left.last_write_time()),
-		right_write_time = convert_to_sys_time(right.last_write_time());
+	const std::chrono::time_point<std::chrono::file_clock, std::chrono::seconds>
+		left_write_time = reduce_precision_to_seconds(left.last_write_time()),
+		right_write_time = reduce_precision_to_seconds(right.last_write_time());
 
 	if (left_write_time == right_write_time)
 		// considered equal
@@ -316,8 +312,8 @@ struct child_entry_info {
 		status = fs::status(entry);
 	}
 
-	constexpr bool is_regular_file() const noexcept { return fs::is_regular_file(status); }
-	constexpr bool is_directory() const noexcept { return fs::is_directory(status); }
+	inline bool is_regular_file() const noexcept { return fs::is_regular_file(status); }
+	inline bool is_directory() const noexcept { return fs::is_directory(status); }
 };
 
 int synchronize_directories_bidirectionally(

@@ -23,7 +23,7 @@ void create_file(const fs::path &path, const std::string &content = "") {
 void create_large_file(const fs::path &path, const unsigned int size) {
 	fs::create_directories(path.parent_path());
 	std::ofstream file(path);
-	for (int i = 0; i < size; i++)
+	for (size_t i = 0; i < size; i++)
 		file << 'x';
 }
 
@@ -51,8 +51,8 @@ void remove_recursively(const fs::path &path) {
 	fs::remove_all(path, ec);
 }
 
-constexpr std::string old_version_content = "old version";
-constexpr std::string new_version_content = "new version";
+const std::string old_version_content = "old version";
+const std::string new_version_content = "new version";
 
 class Test {
 	public:
@@ -141,7 +141,7 @@ class SimpleTwoWayTest final : public Test {
 	const fs::path file_in_source_only = source / "source-only.txt";
 	const fs::path file_in_target_only = target / "target-only.txt";
 
-	constexpr static std::string common_filename = "common.txt";
+	const std::string common_filename = "common.txt";
 	const fs::path file_in_both_older = source / common_filename;
 	const fs::path file_in_both_newer = target / common_filename;
 
@@ -187,7 +187,7 @@ class SimpleTwoWayTest final : public Test {
 };
 
 class ConflictRenamingTest final : public Test {
-	constexpr static std::string common_filename = "common.txt";
+	const std::string common_filename = "common.txt";
 	const fs::path common_file_source = source / common_filename;
 	const fs::path common_file_target = target / common_filename;
 
