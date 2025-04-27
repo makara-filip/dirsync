@@ -53,18 +53,16 @@ DirectoryConfigurationReadResult JsonDirConfigReader::read_from_directory(
 	if (!file_stream.good())
 		return DirectoryConfigurationFileNonexistent{};
 
-	const Json json = Json::parse(file_stream, nullptr, false);
-	if (json.is_discarded())
-		return DirectoryConfigurationParseError{};
-
 	try {
+		const Json json = Json::parse(file_stream);
+
 		Version config_version = json.at(CONFIGURATION_VERSION_KEY);
 		if (!config_version.is_compatible_with(PROGRAM_VERSION))
 			return DirectoryConfigurationIncompatible{};
 
 		DirectoryConfiguration result = json.get<DirectoryConfiguration>();
 		return result;
-	} catch (Json::parse_error &) {
+	} catch (const Json::exception &) {
 		return DirectoryConfigurationParseError{};
 	}
 }
