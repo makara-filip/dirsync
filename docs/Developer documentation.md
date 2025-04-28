@@ -25,6 +25,25 @@ Further code structure is summarized in the table bellow:
 In the important high-level functions, comments are written at the function signature,
 further commenting the implementation details.
 
+## Build and execution
+
+This project is managed and configured by CMake, see the `CMakeLists.txt` file.
+You can prepare, build and run the project by setting your IDE
+or manually by executing these commands:
+
+```bash
+# cd to project "src" directory
+
+# prepare CMake cache
+cmake . -B build
+
+# build project and create executables
+cmake --build build
+
+# run the executable
+build/dirsync
+```
+
 ## One-way synchronization
 
 One-way synchronization is called by the `synchronize_directories_recursively` function.
@@ -88,7 +107,7 @@ of config file and if so, to parse it.
 
 For JSON manipulation, parsing and serializing, the
 [JSON for Modern C++](https://github.com/nlohmann/json) library
-is used, available from , used as a single local header file `json.hpp`,
+is used as a single local header file `json.hpp`,
 without the need to specially configure Cmake.
 This library smoothly works with C++ standard types. 
 
