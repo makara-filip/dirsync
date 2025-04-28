@@ -22,7 +22,6 @@
 //};
 
 struct DirectoryConfiguration {
-	// TODO: verify the version at runtime
 	Version config_version;
 	//	DirectoryRole role = DirectoryRole::unspecified;
 	//	 DateTime last_synchronized_date; // TODO

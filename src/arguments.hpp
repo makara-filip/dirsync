@@ -21,7 +21,7 @@ enum class ConflictResolutionMode {
 struct ProgramArguments {
 	std::string executable;
 	ProgramMode mode = ProgramMode::synchronize;
-	bool verbose = true;
+	bool verbose = false;
 	bool dry_run = false;
 
 	bool copy_configurations = false;
