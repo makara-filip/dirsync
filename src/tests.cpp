@@ -304,15 +304,15 @@ void perform_single_test(Test &test) {
 int run_tests() {
 	std::cout << "Test 1: simple one-way synchronization with default settings" << std::endl;
 	SimpleOneWayTest test;
-	// perform_single_test(test);
+	perform_single_test(test);
 
 	std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
 	SimpleTwoWayTest test2;
-	// perform_single_test(test2);
+	perform_single_test(test2);
 
 	std::cout << "Test 3: one-way synchronization with conflict renaming" << std::endl;
 	ConflictRenamingTest test3;
-	// perform_single_test(test3);
+	perform_single_test(test3);
 
 	std::cout << "Test 4: too large files are not accepted in target" << std::endl;
 	MaxFileSizeTest test4;
