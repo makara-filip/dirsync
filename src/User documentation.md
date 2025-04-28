@@ -1,0 +1,78 @@
+# User documentation: dirsync
+
+Dirsync is a command-line utility for synchronizing files across directories,
+either one-way from the source directory to the target one, or two-way,
+synchronizing symmetrically across two source directories.
+The program supports detailed control over conflict resolution, verbosity, dry-running.
+Additional directory-specific configuration is supported, saved in the directories themselves
+in a config file.
+
+## Usage
+
+```
+dirsync --help
+
+dirsync [OPTIONS] <source-directory> <target-directory>
+
+dirsync --bidirectional [OPTIONS] <source-first> <source-second>
+```
+
+There are two required positional arguments, unless `--help` or `--test` is specified.
+They represent two directories to be synchronized. If two-way synchronization
+is enabled by `--bi|--bidirectional` flag, both are treated as source directories.
+When running one-way synchronization, first one is source one, second is target.
+
+The options are specified in the table bellow. If not specified, no special behaviour occurs.
+
+| Flag                                      | Description                                                                                                                                                                                     |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `-h`, `--help`                            | Display help information and exit. No positional arguments are needed.                                                                                                                          |
+| `--verbose`                               | Output detailed information during synchronization (files copied, skipped, etc.).                                                                                                               |
+| `--dry-run`                               | Simulate the synchronization without actually copying or deleting files. May be useful with `--verbose`.                                                                                        |
+| `--bi`, `--bidirectional`                 | Perform two-way synchronization (both source and target may be updated).                                                                                                                        |
+| `-d`, `--delete-extra`                    | Deletes extra files and folders in the target directory that do not exist in the source directory. This flag is disabled with a warning when running two-way synchronization.                   |
+| `-s`, `--skip-existing`, `--safe`         | Skip copying files that are already in their respective destination.                                                                                                                            |
+| `-r`, `--rename`                          | Use renaming conflict strategy: copy the source content to a new file with appended "last write" timestamp in the filename, using `-YYYY-MM-DD-hh-mm-ss` suffix format. File extension is kept. |
+| `--copy-configs`, `--copy-configurations` | Copy directory configuration files themselves, if encountered.                                                                                                                                  |
+| `--test`                                  | Runs implementation tests. Used by developers and testers.                                                                                                                                      |
+
+
+## Conflict resolution strategies
+
+The default filename conflict strategy is overriding files with newer version
+and skip copying if the source directory contains older version than the target.
+The program determines the file age (or version) by the file last write time.
+
+When using `-s|--skip-existing|--safe` flag, the conflicts are avoided
+by not copying any files.
+
+When using `-r|--rename`, the original files are kept unmodified.
+If their respective last write times are not equivalent, the source file contents
+are copied to a new file with filename of suffixing the source last write time
+in the `YYYY-MM-DD-hh-mm-ss` format. For example, when both `source/example.txt`
+and `target/example.txt` files are present but not with the same last write time,
+they are left unchanged and a new file `target/example-2018-05-12-11-11-11.txt`
+is created with the contents equal to `source/example.txt`. Notice the dash `-`
+before the date.
+
+## Examples
+
+```bash
+# show help
+dirsync --help
+
+# basic one-way sync with override-with-newer strategy (default)
+dirsync ./source ./backup
+
+# one-way sync with verbose output and dry-run:
+dirsync --verbose --dry-run ./source ./backup
+
+# bidirectional synchronization (both directories updated):
+dirsync --bidirectional ./dirA ./dirB
+
+# one-way sync, deleting extra files in target and resolving conflicts by renaming:
+dirsync --delete-extra --rename ./source ./destination
+```
+
+## Notes
+Symbolic links and filesystem and filename case sensitivity are not fully handled.
