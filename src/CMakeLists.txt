@@ -20,4 +20,8 @@ add_executable(dirsync main.cpp
         wildcards.hpp
         tests.cpp
         tests.hpp
+        synchronize_two_way.cpp
+        synchronize_two_way.hpp
+        synchronize_one_way.cpp
+        synchronize_one_way.hpp
 )
