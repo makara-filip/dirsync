@@ -35,6 +35,46 @@ is not added to the PATH variable.
 If you want the project to be more accessible, move it to your executables
 directory, e.g. `/usr/local/bin`. This action may require superuser privileges.
 
+## Directory configuration
+
+A local file can configure each directory's sync behavior,
+mainly for excluding files and directories to be excluded.
+
+The configuration is stored in the local `.dirsync.json` file in the JSON
+format. The scheme is explained bellow:
+
+```json
+{
+  // used for program & file compatibility check
+  "configVersion": {
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  },
+  
+  // these files and directories are not synced 
+  "excludedPatterns": [
+    "*.log",
+    "logs",
+    "ignored-example.txt",
+    "log-*.*",
+    "*.png"
+  ],
+  
+  // max file size in bytes to be copied to the configured directory
+  "maxFileSize": 2000000 // ~2 MB
+}
+```
+
+The configuration applies in the currently configured directory
+AND recursively in directories located in that directory.
+
+For example, if the source directory contains such JSON file,
+files `source/monday.log` and `source/any1/any2/any3/ignored-example.txt`
+are not synchronized. Likewise, if a large file of 5 MB is bidirectionally
+synchronized to this directory, it is skipped, because this directory
+does not accept large files.
+
 ## Usage
 
 ```

@@ -21,15 +21,26 @@
 //	//	bool
 //};
 
+/** A local directory configuration, saved as a file inside the directory it configures.
+ * Contains information about the wildcard-supported excluded patterns and other
+ * filtering information. */
 struct DirectoryConfiguration {
+	/** A semver (sematic versioning) configuration version which should be compatible
+	 * with the program version to work correctly. */
 	Version config_version;
+
 	//	DirectoryRole role = DirectoryRole::unspecified;
-	//	 DateTime last_synchronized_date; // TODO
+	//	DateTime last_synchronized_date; // TODO
 	//	ExclusionFlags exclusionFlags;
 
 	// TODO: make a distinction between "not accepting" and "not allowing" patterns?
 	// is there a real-world scenario for this logic?
+
+	/** A list of excluded filenames that are not copied from nor to the configured directory.
+	 * Supports wildcards with asterisk '*' character, e.g. `example-*.txt` or `*.log`. */
 	std::vector<std::string> exclusion_patterns;
+
+	/** An optional maximum file size in bytes that is allowed to be copied to the configured directory. */
 	std::optional<std::uintmax_t> max_file_size;
 
 	bool allows(const std::filesystem::directory_entry &entry, const std::filesystem::file_status &status) const {
