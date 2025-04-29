@@ -25,6 +25,11 @@ Further code structure is summarized in the table bellow:
 In the important high-level functions, comments are written at the function signature,
 further commenting the implementation details.
 
+The following picture demonstrates the main function call graph.
+High-level functions are on the left.
+
+![Function call graph](./function-call-graph.png)
+
 ## Build and execution
 
 This project is managed and configured by CMake, see the `CMakeLists.txt` file.
