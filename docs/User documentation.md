@@ -10,18 +10,21 @@ in a config file.
 ## Minimum software and hardware requirements
 
 The following operating system versions are supported (and tested):
+
 - Windows 11 (Windows 10 functionality is not tested),
 - Linux: most popular and modern distributions, tested on Ubuntu 22.04.5 LTS,
 - macOS 15 (Sequoia) or later
 
 For build and installation, [CMake build system](https://cmake.org)
-and a C++ compiler is used. Check your installed versions:
+and a C++ compiler are used. Check your installed versions:
+
 - CMake 3.29.3 or later
 - C++ compiler: clang version 17 and or later OR gcc version 14 or later, with formatting and filesystem support
 
 The hardware requirements:
+
 - CPU: any modern processor (even low-end or embedded CPUs)
-- architecture: works on both 32-bit and 64-bit systems, 64-bit is preferred 
+- architecture: works on both 32-bit and 64-bit systems, 64-bit is preferred
 - RAM: ~50 MB free memory, depends on the number of files being processed
 - storage: sufficient space for synchronized files
 - file system: must be directory-based, all FAT, NTFS, ext,
@@ -51,8 +54,7 @@ format. The scheme is explained bellow:
     "minor": 0,
     "patch": 0
   },
-  
-  // these files and directories are not synced 
+  // these files and directories are not synced
   "excludedPatterns": [
     "*.log",
     "logs",
@@ -60,9 +62,9 @@ format. The scheme is explained bellow:
     "log-*.*",
     "*.png"
   ],
-  
   // max file size in bytes to be copied to the configured directory
-  "maxFileSize": 2000000 // ~2 MB
+  "maxFileSize": 2000000
+  // ~2 MB
 }
 ```
 
@@ -104,7 +106,6 @@ The options are specified in the table bellow. If not specified, no special beha
 | `--copy-configs`, `--copy-configurations` | Copy directory configuration files themselves, if encountered.                                                                                                                                  |
 | `--test`                                  | Runs implementation tests. Used by developers and testers.                                                                                                                                      |
 
-
 ## Conflict resolution strategies
 
 The default filename conflict strategy is overriding files with newer version
@@ -125,6 +126,8 @@ before the date.
 
 ## Examples
 
+Some example usage is mentioned bellow.
+
 ```bash
 # show help
 dirsync --help
@@ -132,8 +135,9 @@ dirsync --help
 # basic one-way sync with override-with-newer strategy (default)
 dirsync ./source ./backup
 
-# one-way sync with verbose output and dry-run:
-dirsync --verbose --dry-run ./source ./backup
+# one-way sync with verbose output and dry-run,
+# logging what extra backup files would be deleted (if not dry-run)
+dirsync --verbose --dry-run --delete-extra ./source ./backup
 
 # bidirectional synchronization (both directories updated):
 dirsync --bidirectional ./dirA ./dirB
@@ -142,5 +146,54 @@ dirsync --bidirectional ./dirA ./dirB
 dirsync --delete-extra --rename ./source ./destination
 ```
 
+There are also pre-made examples with directory trees in the project's `examples` directory.
+One of them, called `general-usage` example, is demonstrated in the following section.
+Make sure you update the `source/conflicts/different.txt` and `target/conflicts/skip-older.txt`
+(e.g., with touch command) to be considered newer than their respective counterparts.
+The initial file structure:
+
+```
+source/
+| - .dirsync.json (see bellow)
+| - conflicts/
+|   | - different.txt (new version)
+|   | - skip-older.txt (old version)
+| - first/
+|   | - recursive.ignored.txt
+| - ignored-directory/
+|   | - ignored-by-parent.txt
+target/
+| - conflicts/
+|   | - different.txt (old version)
+|   | - skip-older.txt (new version)
+| - too-large-for-source.txt (more than 50 bytes in size)
+
+source/.dirsync.json = {
+  "configVersion": {...},
+  "exclusionPatterns": [
+    "*.ignored.txt",
+    "ignored-directory"
+  ],
+  "maxFileSize": 50 // bytes
+}
+```
+
+After syncing with the default options (one-way, override-with-newer conflict resolution)
+with `dirsync --verbose source target`, the file tree will look like this:
+
+```
+target/
+| - conflicts/
+|   | - different.txt (new version)  !!! overriden by newer version from the source
+|   | - skip-older.txt (new version) !!! not overriden, the source has older version
+
+!!! ignored-directory is excluded, with everything inside it
+!!! recursive.ignored.txt is excluded, no "first" directory is created here
+```
+
+When synchronized in the opposite way, the `source` does not accept large files,
+so `too-large-for-source.txt` is not copied.
+
 ## Notes
+
 Symbolic links and filesystem and filename case sensitivity are not fully handled.

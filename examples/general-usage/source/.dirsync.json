@@ -1,0 +1,12 @@
+{
+  "configVersion": {
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  },
+  "exclusionPatterns": [
+    "*.ignored.txt",
+    "ignored-directory"
+  ],
+  "maxFileSize": 50
+}
