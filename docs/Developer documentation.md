@@ -133,3 +133,8 @@ The tests can be run using `dirsync --test`.
 The program does not explicitly handle hard or symbolic links or special file types
 (FIFO, sockets...).
 
+## External libraries
+
+The sole external library, [JSON for Modern C++](https://github.com/nlohmann/json)
+is used for JSON parsing of the directory configuration files (`.dirsync.json`).
+The library is modern-standard-friendly.
