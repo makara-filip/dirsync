@@ -11,6 +11,12 @@
 
 namespace fs = std::filesystem;
 
+/** Syncs the files if the program arguments and local directory configuration allow it.
+ * Uses the specified filename conflict strategy. Determines which file content is newer
+ * by file's last written time. \n\n
+ * Example: a/example.txt gets copied to b/example.txt (did not exist). \n\n
+ * Example 2: b/common.txt gets copied to a/common.txt (already existed)
+ * because we use the default time-based conflict strategy and a/common.txt is newer. */
 void synchronize_files_bidirectionally(
 	const ProgramArguments &arguments,
 	const fs::directory_entry &left,
@@ -60,6 +66,8 @@ final:
 	fs::copy_file(*newer, target_path, options, err);
 }
 
+/** Helper structure to store the directory entry with its file status and boolean existence.
+ * It is constructed by an algorithm's state, the files are not guaranteed to exist. */
 struct ChildEntryInfo {
 	bool exists;
 	fs::directory_entry entry;
@@ -81,6 +89,14 @@ struct ChildEntryInfo {
 	bool is_directory() const noexcept { return fs::is_directory(status); }
 };
 
+/** Performs a two-way synchronization recursively.
+* For each common directory in the input tree,
+* list all files and directories, store in a std::map<std::string>
+* and perform symmetric synchronization.
+* If a directory exists in just one directory, this function uses one-way synchronization.
+* If a common directory, calls itself recursively.
+* If a file, calls `synchronize_files_bidirectionally`.
+* Uses BidirectionalContext instance to store configuration pairs in a stack. */
 int synchronize_directories_bidirectionally(
 	const ProgramArguments &arguments,
 	BidirectionalContext &context,

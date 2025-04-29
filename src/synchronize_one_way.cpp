@@ -32,6 +32,9 @@ bool MonodirectionalContext::target_accepts(
 	return true;
 }
 
+/** Delete files and directories in the target directory that do not exist
+ * in the source directory. No recursion here. Directory tree traversal
+ * is managed by higher-level functions. */
 void delete_extra_target_entries(
 	const ProgramArguments &arguments,
 	const fs::directory_entry &source_directory,
@@ -55,6 +58,12 @@ void delete_extra_target_entries(
 	}
 }
 
+/** Copies the file if the program arguments and local directory configuration allow it.
+ * Uses the specified filename conflict strategy. Determines which file content is newer
+ * by file's last written time. \n\n
+ * Example: source/example.txt gets copied to target/example.txt (did not exist). \n\n
+ * Example 2: source/common.txt gets copied to target/common-2025-01-02-12-34-56.txt,
+ * because we use the renaming conflict strategy and target/common.txt already exists. */
 void synchronize_file(
 	const ProgramArguments &arguments,
 	const MonodirectionalContext &context,
@@ -106,6 +115,14 @@ final:
 	fs::copy_file(source_file, target_path, options, err);
 }
 
+/** A recursive function for one-way directory synchronization.
+ * For every directory, tries to read and parse the local configuration,
+ * uses filesystem's directory iterators to traverse the files.
+ * Delegates more granular actions for other functions.
+ * If a file is encountered, calls the `synchronize_file` function.
+ * If a directory is encountered, calls itself recursively.
+ * It removes excess files in the target directory tree if the program arguments dictate.
+ * The local configurations are stored in the `MonodirectionalContext` stack. */
 int synchronize_directories_recursively(
 	const ProgramArguments &arguments,
 	MonodirectionalContext &context,
@@ -114,7 +131,6 @@ int synchronize_directories_recursively(
 ) {
 	// read this directory configurations, both source and target
 	// add them to the configuration stack
-	// make a composite configuration? - compressing all what to copy and what not
 	// iterate over the source children
 	// - if a file, copy if the config allows
 	// - if a directory, call itself recursively with deeper configuration stack

@@ -13,17 +13,26 @@
 
 namespace fs = std::filesystem;
 
+/** Formats the filesystem-related time to human-readable civil format.
+ * @return the formatted string represented the input time */
 std::string get_formatted_time(const fs::file_time_type &time) {
 	using namespace std::chrono;
 	const time_point<file_clock, seconds> time_in_seconds = time_point_cast<seconds>(time);
 	return std::format("{:%F-%H-%M-%S}", time_in_seconds);
 }
 
+/** Converts the filesystem-related time to another instance of the same file clock,
+ * but with fixed duration of `std::chrono::seconds`. */
 std::chrono::file_time<std::chrono::seconds> reduce_precision_to_seconds(const fs::file_time_type &file_time) {
 	using namespace std::chrono;
 	return time_point_cast<seconds>(file_time);
 }
 
+/** Verifies the given path is an existing directory.
+ * @param path the source directory path
+ * @param directory output parameter of the directory entry representing information about the source
+ * @param status output parameter of the file status
+ * @return A program-wide error code. If none occurs, default to zero. */
 int verify_source_directory(const fs::path &path, fs::directory_entry &directory, fs::file_status &status) {
 	try {
 		if (!fs::exists(path)) {
@@ -33,8 +42,7 @@ int verify_source_directory(const fs::path &path, fs::directory_entry &directory
 		directory = fs::directory_entry(path);
 		status = directory.status();
 	} catch (fs::filesystem_error &error) {
-		std::cerr << "Failed to check the source directory details." << std::endl
-			<< "System error: " << error.what() << std::endl;
+		std::cerr << "Failed to check the source directory details." << error.what() << std::endl;
 		return EXIT_CODE_FILESYSTEM_ERROR;
 	}
 
@@ -46,12 +54,16 @@ int verify_source_directory(const fs::path &path, fs::directory_entry &directory
 	return 0;
 }
 
+/** Ensures the target directory exists. If it does not, the function creates it.
+ * @param path the target directory path
+ * @param directory output parameter of the directory entry representing information about the target
+ * @param status output parameter of the file status
+ * @return A program-wide error code. If none occurs, default to zero. */
 int ensure_target_directory(const fs::path &path, fs::directory_entry &directory, fs::file_status &status) {
 	std::error_code error;
 	fs::create_directories(path, error);
 	if (error) {
-		std::cerr << "Error: Failed to ensure the target directory existence." << std::endl;
-		std::cerr << "System error: " << error.message() << std::endl;
+		std::cerr << "Error: Failed to ensure the target directory existence." << error.message() << std::endl;
 		return EXIT_CODE_FILESYSTEM_ERROR;
 	}
 	directory = fs::directory_entry(path, error);
@@ -60,6 +72,8 @@ int ensure_target_directory(const fs::path &path, fs::directory_entry &directory
 	return 0;
 }
 
+/** Creates a new string by appending a dash and a formatted last write time, keeping the file extension (if any).
+ * @param entry file or directory whose name and last write time is used to compose the new filename */
 std::string insert_timestamp_to_filename(const fs::directory_entry &entry) {
 	return entry.path().stem().string()
 		+ "-"
@@ -67,6 +81,11 @@ std::string insert_timestamp_to_filename(const fs::directory_entry &entry) {
 		+ entry.path().extension().string();
 }
 
+/** Given the program CLI arguments, delegates the work to one-way-specific or two-way-specific
+ * synchronization functions. Makes sure the source and target directories are valid.
+ * Prepares the recursive synchronization Context, either MonodirectionalContext or BidirectionalContext.
+ * @param arguments the processed CLI arguments, dictating synchronization details
+ * @return An error code. If none occurs, defaults to zero. */
 int synchronize_directories(const ProgramArguments &arguments) {
 	const fs::path source_path(arguments.source_directory);
 	const fs::path target_path(arguments.target_directory);
@@ -84,7 +103,7 @@ int synchronize_directories(const ProgramArguments &arguments) {
 		MonodirectionalContext context(&source_directory, &target_directory);
 		error = synchronize_directories_recursively(arguments, context, source_directory, target_directory);
 	} else {
-		// we do not have source and target directories, we have two source ones
+		// we do not have the source and target directories, we have two source ones
 
 		error = verify_source_directory(source_path, source_directory, source_status);
 		if (error) return error;

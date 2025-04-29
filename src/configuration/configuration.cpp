@@ -13,10 +13,21 @@ bool is_config_file(const fs::path &path) {
 	return path.filename().string().starts_with(CONFIG_FILE_NAME_PREFIX);
 }
 
+/** A list of supported configuration reader instances,
+ * one instance per file type (JSON, XML, etc.). */
 const Reader *supported_readers[1] = {
 	dynamic_cast<Reader *>(new JsonDirConfigReader())
 };
 
+/** Performs a high-level multi-format local configuration reading and parsing.
+ * This function tries every supported file format given by `supported_readers`.
+ * Checks the config version upon parsing.
+ * If invalid version or a parse error, an error is written to standard error stream.
+ * @param directory the directory in which to load a local configuration
+ * @param arguments the processed CLI program arguments
+ * @param configuration Output parameter of the configuration. Has no value
+ * if no supported configuration file was present or an error occurred.
+ * @return A program-wide error code. If none occurs, defaults to zero. */
 int get_directory_configuration(
 	const fs::directory_entry &directory,
 	const ProgramArguments &arguments,

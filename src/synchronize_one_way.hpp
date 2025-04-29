@@ -8,6 +8,8 @@
 
 namespace fs = std::filesystem;
 
+/** The context object containing the local directory configurations in a stack.
+ * Contains both source and target tree stacks. */
 struct MonodirectionalContext {
 	std::vector<std::optional<DirectoryConfiguration>>
 		source_configuration_stack, target_configuration_stack;

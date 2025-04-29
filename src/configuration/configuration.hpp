@@ -73,12 +73,20 @@ constexpr char CONFIG_FILE_NAME_PREFIX[] = ".dirsync";
 
 bool is_config_file(const std::filesystem::path &path);
 
+/** An abstract reader and parser of the local directory configurations.
+ * If you want to support a new file format, create a descendant class and implement
+ * its virtual functions. Add an instance to the `supported_readers` list. */
 class DirectoryConfigurationReader {
 	public:
+	/** Tries to read the configuration. Returns a composite instance
+	 * - config or file error or "not found". */
 	virtual DirectoryConfigurationReadResult read_from_directory(
 		const std::filesystem::directory_entry &directory,
 		const ProgramArguments &arguments
 	) const = 0;
+
+	/** Gets the config filename specific to this format.
+	 * Example: .dirsync.json for JSON format. */
 	virtual const char *config_file_name() const = 0;
 
 	protected:
@@ -92,3 +100,4 @@ int get_directory_configuration(
 );
 
 #endif //DIRSYNC_DIRECTORY_CONFIG_HPP
+
