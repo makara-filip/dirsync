@@ -7,6 +7,34 @@ The program supports detailed control over conflict resolution, verbosity, dry-r
 Additional directory-specific configuration is supported, saved in the directories themselves
 in a config file.
 
+## Minimum software and hardware requirements
+
+The following operating system versions are supported (and tested):
+- Windows 11 (Windows 10 functionality is not tested),
+- Linux: most popular and modern distributions, tested on Ubuntu 22.04.5 LTS,
+- macOS 15 (Sequoia) or later
+
+For build and installation, [CMake build system](https://cmake.org)
+and a C++ compiler is used. Check your installed versions:
+- CMake 3.29.3 or later
+- C++ compiler: clang version 17 and or later OR gcc version 14 or later, with formatting and filesystem support
+
+The hardware requirements:
+- CPU: any modern processor (even low-end or embedded CPUs)
+- architecture: works on both 32-bit and 64-bit systems, 64-bit is preferred 
+- RAM: ~50 MB free memory, depends on the number of files being processed
+- storage: sufficient space for synchronized files
+- file system: must be directory-based, all FAT, NTFS, ext,
+  Apple-based filesystems are supported
+
+## Installation
+
+There is a shell script `install.sh` for source code compilation.
+Run it inside the `project` directory. Note that the executable binary
+is not added to the PATH variable.
+If you want the project to be more accessible, move it to your executables
+directory, e.g. `/usr/local/bin`. This action may require superuser privileges.
+
 ## Usage
 
 ```
