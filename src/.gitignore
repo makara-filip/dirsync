@@ -2,11 +2,19 @@
 # IDE-specific configuration
 .idea/
 
+test/
+
 # Compilation output
 *.out
 *.dSYM
 cmake-build-debug/
+build/
+*.jar
 
 
 # MacOS-specific files
 .DS_Store
+
+# Documentation output
+html/
+latex/

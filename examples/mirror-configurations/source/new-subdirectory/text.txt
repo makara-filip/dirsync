@@ -1,0 +1,1 @@
+this file should be copied to the mirror directory
