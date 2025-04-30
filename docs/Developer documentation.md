@@ -30,6 +30,9 @@ High-level functions are on the left.
 
 ![Function call graph](./function-call-graph.png)
 
+The following picture demonstrates a UML class and function diagram,
+a graphical interpretation of the class connectedness.
+
 ![Class and function UML diagram](./class-and-function-diagram.png)
 
 ## Build and execution
