@@ -36,6 +36,9 @@ bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
 			conflict_resolution = ConflictResolutionMode::rename;
 		} else if (argument == "--copy-configs" || argument == "--copy-configurations") {
 			copy_configurations = true;
+		} else {
+			std::cerr << "Error: Unknown argument: " << argument << std::endl;
+			return false;
 		}
 	}
 
