@@ -30,6 +30,8 @@ High-level functions are on the left.
 
 ![Function call graph](./function-call-graph.png)
 
+![Class and function UML diagram](./class-and-function-diagram.png)
+
 ## Build and execution
 
 This project is managed and configured by CMake, see the `CMakeLists.txt` file.
