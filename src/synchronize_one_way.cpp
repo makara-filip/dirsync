@@ -69,11 +69,10 @@ void synchronize_file(
 	const MonodirectionalContext &context,
 	const fs::directory_entry &source_file,
 	const fs::file_status &source_status,
-	const fs::directory_entry &target_file,
+	const fs::path &target_path,
 	std::error_code &err
 ) {
-	const fs::file_status target_status = fs::status(target_file, err);
-	fs::path target_path = target_file.path();
+	fs::path result_target_path = target_path;
 	fs::copy_options options = fs::copy_options::skip_existing;
 
 	// TODO: handle OS filesystem case (in)sensitivity
@@ -86,11 +85,12 @@ void synchronize_file(
 
 	if (!context.should_copy(source_file, source_status)) return;
 
-	if (fs::exists(target_status)) {
+	if (fs::exists(target_path)) {
+		const fs::directory_entry target_file(target_path);
 		if (arguments.conflict_resolution == ConflictResolutionMode::skip) return;
 
-		const fs::file_time_type source_written_at = fs::last_write_time(source_file);
-		const fs::file_time_type target_written_at = fs::last_write_time(target_file);
+		const fs::file_time_type source_written_at = source_file.last_write_time(err);
+		const fs::file_time_type target_written_at = target_file.last_write_time(err);
 
 		if (source_written_at == target_written_at) return;
 		if (source_written_at < target_written_at) {
@@ -105,15 +105,15 @@ void synchronize_file(
 		if (arguments.conflict_resolution == ConflictResolutionMode::overwrite_with_newer) {
 			// no special treatment
 		} else if (arguments.conflict_resolution == ConflictResolutionMode::rename) {
-			target_path.replace_filename(insert_timestamp_to_filename(target_file));
+			result_target_path = result_target_path.parent_path() / insert_timestamp_to_filename(target_file);
 		}
 	}
 
 final:
 	if (arguments.verbose) std::cout << "Copying " << source_file << "\n";
 	if (arguments.dry_run) return;
-	fs::create_directories(target_path.parent_path(), err);
-	fs::copy_file(source_file, target_path, options, err);
+	fs::create_directories(result_target_path.parent_path(), err);
+	fs::copy_file(source_file, result_target_path, options, err);
 }
 
 /** A recursive function for one-way directory synchronization.
@@ -154,10 +154,7 @@ int synchronize_directories_recursively(
 			continue;
 		}
 
-		const fs::directory_entry matching_target_entry(
-			target_directory.path() / source_entry.path().filename(),
-			err
-		);
+		const fs::path matching_target_path = target_directory.path() / source_entry.path().filename();
 
 		if (fs::is_directory(status)) {
 			if (!context.should_copy(source_entry, status)) continue;
@@ -165,10 +162,10 @@ int synchronize_directories_recursively(
 				arguments,
 				context,
 				source_entry,
-				matching_target_entry
+				fs::directory_entry(matching_target_path)
 			);
 		} else if (fs::is_regular_file(status)) {
-			synchronize_file(arguments, context, source_entry, status, matching_target_entry, err);
+			synchronize_file(arguments, context, source_entry, status, matching_target_path, err);
 		}
 	}
 

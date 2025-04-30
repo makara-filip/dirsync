@@ -17,8 +17,6 @@ class JsonDirConfigReader final : public DirectoryConfigurationReader {
 	const char *config_file_name() const override {
 		return ".dirsync.json";
 	}
-
-	virtual ~JsonDirConfigReader() = default;
 };
 
 #endif //DIRSYNC_CONFIGURATION_JSON_HPP

@@ -100,8 +100,7 @@ class DirectoryConfigurationReader {
 	 * Example: .dirsync.json for JSON format. */
 	virtual const char *config_file_name() const = 0;
 
-	protected:
-	~DirectoryConfigurationReader() = default;
+	virtual ~DirectoryConfigurationReader() = default;
 };
 
 int get_directory_configuration(
