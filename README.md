@@ -2,9 +2,9 @@
 
 [Specification](./specification.md)
 
-[Developer documentation](./Developer%20documentation.md)
+[Developer documentation](./docs/Developer%20documentation.md)
 
-[User documentation](./User%20documentation.md)
+[User documentation](./docs/User%20documentation.md)
 
 Dirsync is a command-line utility for synchronizing files across directories,
 either one-way from the source directory to the target one, or two-way,
