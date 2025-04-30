@@ -95,7 +95,8 @@ void synchronize_file(
 		if (source_written_at == target_written_at) return;
 		if (source_written_at < target_written_at) {
 			// do not copy older versions, but inform the user
-			std::cout << "Skipped copying older version of " << source_file << "\n";
+			if (arguments.verbose)
+				std::cout << "Skipped copying older version of " << source_file << "\n";
 			return;
 		}
 

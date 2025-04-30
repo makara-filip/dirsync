@@ -179,7 +179,16 @@ source/.dirsync.json = {
 ```
 
 After syncing with the default options (one-way, override-with-newer conflict resolution)
-with `dirsync --verbose source target`, the file tree will look like this:
+with 
+
+```
+$ dirsync --verbose source target
+Skipped copying older version of "source/conflicts/skip-older.txt"
+Copying "source/conflicts/different.txt"
+Copying "source/root.txt"
+```
+
+the file tree will look like this:
 
 ```
 target/
