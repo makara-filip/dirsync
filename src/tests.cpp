@@ -51,17 +51,19 @@ void remove_recursively(const fs::path &path) {
 	fs::remove_all(path, ec);
 }
 
-const std::string old_version_content = "old version";
+const static std::string old_version_content = "old version";
 const std::string new_version_content = "new version";
 
 class Test {
-	public:
-	const fs::path source = "test/source";
-	const fs::path target = "test/target";
+	protected:
+	const fs::path common_parent = "test";
+	const fs::path source = common_parent / "source";
+	const fs::path target = common_parent / "target";
 	int result = 0;
 
 	Test() = default;
 
+	public:
 	virtual void prepare() = 0;
 	virtual void perform() = 0;
 	virtual void assert_validity() = 0;
@@ -96,18 +98,21 @@ class SimpleOneWayTest final : public Test {
 		file.close();
 
 		create_file(target / "conflicts" / "different.txt", old_version_content);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 		create_file(source / "conflicts" / "different.txt", new_version_content);
 
 		create_file(source / "conflicts" / "skip-older.txt", old_version_content);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 		create_file(target / "conflicts" / "skip-older.txt", new_version_content);
 	}
 
 	void perform() override {
-		ProgramArguments args;
-		args.source_directory = source.string();
-		args.target_directory = target.string();
-		args.is_one_way_synchronization = true;
-		args.verbose = true;
+		ProgramArgumentsBuilder builder;
+		builder.set_source_directory(source);
+		builder.set_target_directory(target);
+		builder.set_verbosity(true);
+
+		const ProgramArguments args = builder.build();
 
 		result = synchronize_directories(args);
 	}
@@ -137,6 +142,7 @@ class SimpleOneWayTest final : public Test {
 	}
 };
 
+/*
 class SimpleTwoWayTest final : public Test {
 	const fs::path file_in_source_only = source / "source-only.txt";
 	const fs::path file_in_target_only = target / "target-only.txt";
@@ -185,6 +191,7 @@ class SimpleTwoWayTest final : public Test {
 		remove_recursively(target);
 	}
 };
+*/
 
 class ConflictRenamingTest final : public Test {
 	const std::string common_filename = "common.txt";
@@ -206,12 +213,13 @@ class ConflictRenamingTest final : public Test {
 	}
 
 	void perform() override {
-		ProgramArguments args;
-		args.source_directory = source.string();
-		args.target_directory = target.string();
-		args.is_one_way_synchronization = true;
-		args.conflict_resolution = ConflictResolutionMode::rename;
-		args.verbose = true;
+		ProgramArgumentsBuilder builder;
+		builder.set_source_directory(source);
+		builder.set_target_directory(target);
+		builder.set_conflict_resolution(ConflictResolutionMode::rename);
+		builder.set_verbosity(true);
+
+		const ProgramArguments args = builder.build();
 
 		result = synchronize_directories(args);
 	}
@@ -272,11 +280,12 @@ class MaxFileSizeTest final : public Test {
 	}
 
 	void perform() override {
-		ProgramArguments args;
-		args.source_directory = source.string();
-		args.target_directory = target.string();
-		args.is_one_way_synchronization = true;
-		args.verbose = true;
+		ProgramArgumentsBuilder builder;
+		builder.set_source_directory(source);
+		builder.set_target_directory(target);
+		builder.set_verbosity(true);
+
+		const ProgramArguments args = builder.build();
 
 		result = synchronize_directories(args);
 	}
@@ -306,9 +315,9 @@ int run_tests() {
 	SimpleOneWayTest test;
 	perform_single_test(test);
 
-	std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
-	SimpleTwoWayTest test2;
-	perform_single_test(test2);
+	// std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
+	// SimpleTwoWayTest test2;
+	// perform_single_test(test2);
 
 	std::cout << "Test 3: one-way synchronization with conflict renaming" << std::endl;
 	ConflictRenamingTest test3;

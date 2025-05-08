@@ -9,16 +9,17 @@
 
 int main(const int argc, char **argv) {
 	const std::vector<std::string> args(argv, argv + argc);
-	ProgramArguments arguments;
-	if (!arguments.try_parse(args))
+	const std::optional<ProgramArguments> arguments = ProgramArguments::try_parse(args);
+	if (!arguments.has_value())
 		return EXIT_CODE_INCORRECT_USAGE;
 
-	if (arguments.mode == ProgramMode::help) {
+	const ProgramMode mode = arguments->get_mode();
+	if (mode == ProgramMode::help) {
 		print_help();
-	} else if (arguments.mode == ProgramMode::test) {
+	} else if (mode == ProgramMode::test) {
 		return run_tests();
-	} else if (arguments.mode == ProgramMode::synchronize) {
-		return synchronize_directories(arguments);
+	} else if (mode == ProgramMode::synchronize) {
+		return synchronize_directories(*arguments);
 	}
 
 	return 0;

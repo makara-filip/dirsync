@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(DirSync)
 
-add_executable(dirsync main.cpp
+add_executable(dirsync
+        main.cpp
         arguments.cpp
         arguments.hpp
         help.hpp
@@ -20,8 +21,8 @@ add_executable(dirsync main.cpp
         wildcards.hpp
         tests.cpp
         tests.hpp
-        synchronize_two_way.cpp
-        synchronize_two_way.hpp
+        #        synchronize_two_way.cpp
+        #        synchronize_two_way.hpp
         synchronize_one_way.cpp
         synchronize_one_way.hpp
 )

@@ -33,17 +33,17 @@ void to_json(Json &j, const DirectoryConfiguration &p) {
 }
 
 DirectoryConfigurationReadResult JsonDirConfigReader::read_from_directory(
-	const std::filesystem::directory_entry &directory,
+	const std::filesystem::path &directory,
 	const ProgramArguments &arguments
 ) const {
-	const fs::path file_path = directory.path() / config_file_name();
+	const fs::path file_path = directory / config_file_name();
 	std::error_code error;
 	const fs::file_status file_status = fs::status(file_path, error);
 	if (!fs::exists(file_status))
 		return DirectoryConfigurationFileNonexistent{};
 
 	if (error) {
-		if (arguments.verbose)
+		if (arguments.is_verbose())
 			std::cerr << "Error: Failed to check the directory configuration details in: "
 				<< file_path << ": " << error.message() << std::endl;
 		return fs::filesystem_error("Failed to check the directory configuration details", error);

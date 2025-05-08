@@ -1,8 +1,18 @@
 #include "arguments.hpp"
 
 #include <iostream>
+#include <optional>
 
-bool ProgramArguments::try_parse(const std::vector<std::string> &arguments) {
+std::optional<ProgramArguments> ProgramArguments::try_parse(
+	const std::vector<std::string> &arguments
+) {
+	ProgramArguments parsed;
+	if (parsed.try_parse_impl(arguments))
+		return parsed;
+	return std::nullopt;
+}
+
+bool ProgramArguments::try_parse_impl(const std::vector<std::string> &arguments) {
 	if (arguments.size() < 2) {
 		std::cerr << "Error: Too few arguments." << std::endl;
 		std::cerr << "Usage: dirsync [--help] [source-directory] [target-directory]" << std::endl;
@@ -81,12 +91,15 @@ const char *string_or_empty(const std::string &str) {
 	return str.c_str();
 }
 
-void ProgramArguments::print(std::ostream &stream) const {
+std::ostream &ProgramArguments::operator<<(std::ostream &stream) const {
 	stream << "Flags: " << std::endl;
 	stream << "    help: " << flag_to_string(mode == ProgramMode::help)
 		<< std::endl;
 	stream << "    verbose: " << flag_to_string(verbose) << std::endl;
 	stream << "    dry run: " << flag_to_string(dry_run) << std::endl;
+	stream << "Copy configs:" << flag_to_string(copy_configurations) << std::endl;
+	stream << "Delete extra:" << flag_to_string(delete_extra_target_files) << std::endl;
 	stream << "Source dir: " << string_or_empty(source_directory) << std::endl;
 	stream << "Target dir: " << string_or_empty(target_directory) << std::endl;
+	return stream;
 }

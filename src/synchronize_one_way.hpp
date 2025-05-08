@@ -1,40 +1,71 @@
 #ifndef DIRSYNC_SYNCHRONIZE_ONE_WAY_HPP
 #define DIRSYNC_SYNCHRONIZE_ONE_WAY_HPP
 
-#include <optional>
 #include <vector>
 
+#include "synchronize.hpp"
 #include "configuration/configuration.hpp"
 
 namespace fs = std::filesystem;
 
 /** The context object containing the local directory configurations in a stack.
- * Contains both source and target tree stacks. */
-struct MonodirectionalContext {
-	std::vector<std::optional<DirectoryConfiguration>>
-		source_configuration_stack, target_configuration_stack;
-	const std::filesystem::directory_entry *root_source, *root_target;
+ * Contains both source and target configuration stacks. */
+class MonodirectionalContext final : public BinaryContext {
+	public:
+	explicit MonodirectionalContext(const ProgramArguments &args) : BinaryContext(args) {}
 
-	MonodirectionalContext(const fs::directory_entry *source, const fs::directory_entry *target) {
-		this->root_source = source;
-		this->root_target = target;
+	const fs::path &get_source_root() const { return root_paths.first; }
+	const fs::path &get_target_root() const { return root_paths.second; }
+
+	const OptionalConfiguration &get_target_leaf_configuration() const {
+		return get_leaf_configuration_pair().second;
 	}
 
-	bool should_copy(const fs::directory_entry &entry, const fs::file_status &status) const {
-		return source_allows_to_copy(entry, status) && target_accepts(entry, status);
+	bool should_synchronize(const fs::directory_entry &entry) const override {
+		return source_allows_to_copy(entry) && target_accepts(entry);
 	}
 
 	private:
-	bool source_allows_to_copy(const fs::directory_entry &entry, const fs::file_status &status) const;
-
-	bool target_accepts(const fs::directory_entry &entry, const fs::file_status &status) const;
+	bool source_allows_to_copy(const fs::directory_entry &entry) const;
+	bool target_accepts(const fs::directory_entry &entry) const;
 };
 
-int synchronize_directories_recursively(
-	const ProgramArguments &arguments,
-	MonodirectionalContext &context,
-	const fs::directory_entry &source_directory,
-	const fs::directory_entry &target_directory
-);
+class MonodirectionalSynchronizer final : public Synchronizer {
+	MonodirectionalContext &context;
+
+	public:
+	explicit MonodirectionalSynchronizer(MonodirectionalContext &context)
+		: context(context) {}
+
+	int synchronize() override {
+		return synchronize_directories_recursively(
+			context.get_source_root(),
+			context.get_target_root()
+		);
+	}
+
+	private:
+	int synchronize_directories_recursively(
+		const fs::path &source_directory,
+		const fs::path &target_directory
+	);
+	int synchronize_directory_entry(
+		const fs::directory_entry &source_entry,
+		const fs::path &target_directory
+	);
+	int synchronize_config_file(
+		const fs::directory_entry &source_entry,
+		const fs::path &target_path
+	);
+	int synchronize_regular_file(
+		const fs::directory_entry &source_file,
+		const fs::path &target_path
+	);
+
+	int delete_extra_target_entries(
+		const fs::path &source_directory,
+		const fs::path &target_directory
+	) const;
+};
 
 #endif //DIRSYNC_SYNCHRONIZE_ONE_WAY_HPP

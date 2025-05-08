@@ -87,34 +87,35 @@ std::string insert_timestamp_to_filename(const fs::directory_entry &entry) {
  * @param arguments the processed CLI arguments, dictating synchronization details
  * @return An error code. If none occurs, defaults to zero. */
 int synchronize_directories(const ProgramArguments &arguments) {
-	const fs::path source_path(arguments.source_directory);
-	const fs::path target_path(arguments.target_directory);
+	const fs::path source_path = arguments.get_source_path();
+	const fs::path target_path = arguments.get_target_path();
 
 	fs::directory_entry source_directory, target_directory;
 	fs::file_status source_status, target_status;
 
 	int error = 0;
-	if (arguments.is_one_way_synchronization) {
+	if (arguments.is_one_way()) {
 		error = verify_source_directory(source_path, source_directory, source_status);
 		if (error) return error;
 		error = ensure_target_directory(target_path, target_directory, target_status);
 		if (error) return error;
 
-		MonodirectionalContext context(&source_directory, &target_directory);
-		error = synchronize_directories_recursively(arguments, context, source_directory, target_directory);
+		MonodirectionalContext context(arguments);
+		MonodirectionalSynchronizer synchronizer(context);
+		error = synchronizer.synchronize();
 	} else {
-		// we do not have the source and target directories, we have two source ones
-
-		error = verify_source_directory(source_path, source_directory, source_status);
-		if (error) return error;
-		error = verify_source_directory(target_path, target_directory, target_status);
-		if (error) return error;
-
-		fs::directory_entry source_left = source_directory;
-		fs::directory_entry source_right = target_directory;
-
-		BidirectionalContext context(&source_left, &source_right);
-		error = synchronize_directories_bidirectionally(arguments, context, source_left, source_right);
+		// // we do not have the source and target directories, we have two source ones
+		//
+		// error = verify_source_directory(source_path, source_directory, source_status);
+		// if (error) return error;
+		// error = verify_source_directory(target_path, target_directory, target_status);
+		// if (error) return error;
+		//
+		// fs::directory_entry source_left = source_directory;
+		// fs::directory_entry source_right = target_directory;
+		//
+		// BidirectionalContext context(&source_left, &source_right);
+		// error = synchronize_directories_bidirectionally(arguments, context, source_left, source_right);
 	}
 
 	return error;

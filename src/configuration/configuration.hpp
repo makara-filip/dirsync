@@ -43,17 +43,15 @@ struct DirectoryConfiguration {
 	/** An optional maximum file size in bytes that is allowed to be copied to the configured directory. */
 	std::optional<std::uintmax_t> max_file_size;
 
-	bool allows(const std::filesystem::directory_entry &entry, const std::filesystem::file_status &status) const {
-		// const std::string filename = entry.path().filename().string();
+	bool allows(const std::filesystem::directory_entry &entry) const {
 		// TODO: implement "not accepting" and "not allowing" patterns?
-		// return true;
-		return accepts(entry, status);
+		return accepts(entry);
 	}
 
-	bool accepts(const std::filesystem::directory_entry &entry, const std::filesystem::file_status &status) const {
+	bool accepts(const std::filesystem::directory_entry &entry) const {
 		const std::string filename = entry.path().filename().string();
 
-		if (std::filesystem::is_regular_file(status) && max_file_size.has_value()) {
+		if (max_file_size.has_value() && entry.is_regular_file()) {
 			const std::uintmax_t size = entry.file_size();
 			if (size > *max_file_size) return false;
 		}
@@ -63,7 +61,6 @@ struct DirectoryConfiguration {
 				return false;
 		}
 
-		// return allows(entry);
 		return true;
 	}
 };
@@ -92,7 +89,7 @@ class DirectoryConfigurationReader {
 	/** Tries to read the configuration. Returns a composite instance
 	 * - config or file error or "not found". */
 	virtual DirectoryConfigurationReadResult read_from_directory(
-		const std::filesystem::directory_entry &directory,
+		const std::filesystem::path &directory,
 		const ProgramArguments &arguments
 	) const = 0;
 
@@ -104,7 +101,7 @@ class DirectoryConfigurationReader {
 };
 
 int get_directory_configuration(
-	const std::filesystem::directory_entry &directory,
+	const std::filesystem::path &directory,
 	const ProgramArguments &arguments,
 	std::optional<DirectoryConfiguration> &configuration
 );

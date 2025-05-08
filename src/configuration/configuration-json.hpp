@@ -10,7 +10,7 @@
 class JsonDirConfigReader final : public DirectoryConfigurationReader {
 	public:
 	DirectoryConfigurationReadResult read_from_directory(
-		const std::filesystem::directory_entry &directory,
+		const std::filesystem::path &directory,
 		const ProgramArguments &arguments
 	) const override;
 

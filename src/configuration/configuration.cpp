@@ -29,7 +29,7 @@ const Reader *supported_readers[1] = {
  * if no supported configuration file was present or an error occurred.
  * @return A program-wide error code. If none occurs, defaults to zero. */
 int get_directory_configuration(
-	const fs::directory_entry &directory,
+	const fs::path &directory,
 	const ProgramArguments &arguments,
 	std::optional<DirectoryConfiguration> &configuration
 ) {
@@ -37,11 +37,11 @@ int get_directory_configuration(
 		Result result = reader->read_from_directory(directory, arguments);
 
 		if (std::holds_alternative<DirectoryConfigurationParseError>(result)) {
-			const fs::path config_file_path = directory.path() / reader->config_file_name();
+			const fs::path config_file_path = directory / reader->config_file_name();
 			std::cerr << "Parse error in " << config_file_path << std::endl;
 			return EXIT_CODE_CONFIG_FILE_PARSE_ERROR;
 		} else if (std::holds_alternative<DirectoryConfigurationIncompatible>(result)) {
-			const fs::path config_file_path = directory.path() / reader->config_file_name();
+			const fs::path config_file_path = directory / reader->config_file_name();
 			std::cerr << "Incompatible configuration in " << config_file_path << std::endl;
 			return EXIT_CODE_CONFIG_VERSION_INCOMPATIBLE;
 		}
