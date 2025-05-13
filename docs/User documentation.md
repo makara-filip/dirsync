@@ -12,20 +12,22 @@ in a config file.
 The following operating system versions are supported (and tested):
 
 - Windows 11 (Windows 10 functionality is not tested),
-- Linux: most popular and modern distributions, tested on Ubuntu 22.04.5 LTS,
+- Linux: most popular and modern distributions, tested on Ubuntu 25.04,
 - macOS 15 (Sequoia) or later
 
 For build and installation, [CMake build system](https://cmake.org)
 and a C++ compiler are used. Check your installed versions:
 
 - CMake 3.29.3 or later
-- C++ compiler: clang version 17 and or later OR gcc version 14 or later, with formatting and filesystem support
+- C++ compiler: clang version 17 or later OR gcc version 14 or later,
+  with clock formatting and filesystem support
 
 The hardware requirements:
 
 - CPU: any modern processor (even low-end or embedded CPUs)
 - architecture: works on both 32-bit and 64-bit systems, 64-bit is preferred
-- RAM: ~50 MB free memory, depends on the number of files being processed
+- RAM: typically ~50 MB free memory, depends on the number of files being processed
+  and their sizes; large files may need more memory to maintain optimal performance
 - storage: sufficient space for synchronized files
 - file system: must be directory-based, all FAT, NTFS, ext,
   Apple-based filesystems are supported
