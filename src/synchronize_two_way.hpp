@@ -10,6 +10,8 @@
 
 namespace fs = std::filesystem;
 
+/** The context object containing the local directory configuration pairs in a stack.
+ * Provides information for and stores state of `BidirectionalSynchronizer`. */
 class BidirectionalContext final : public BinaryContext {
 	public:
 	explicit BidirectionalContext(const ProgramArguments &args) : BinaryContext(args) {}
@@ -47,6 +49,8 @@ struct ChildEntryInfo {
 	operator const fs::path &() const { return path; }
 };
 
+/** A final `Synchronizer` descendant. Provides implementation for two-way synchronization
+ * and related helper functions. Uses `BidirectionalContext` for specific behavior. */
 class BidirectionalSynchronizer final : public Synchronizer {
 	BidirectionalContext &context;
 

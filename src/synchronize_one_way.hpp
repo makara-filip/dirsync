@@ -9,7 +9,8 @@
 namespace fs = std::filesystem;
 
 /** The context object containing the local directory configurations in a stack.
- * Contains both source and target configuration stacks. */
+ * Provides information for and stores state of `MonodirectionalSynchronizer`.
+ * Contains both source and target configurations, see public getters. */
 class MonodirectionalContext final : public BinaryContext {
 	public:
 	explicit MonodirectionalContext(const ProgramArguments &args) : BinaryContext(args) {}
@@ -30,6 +31,8 @@ class MonodirectionalContext final : public BinaryContext {
 	bool target_accepts(const fs::directory_entry &entry) const;
 };
 
+/** A final `Synchronizer` descendant. Provides implementation for one-way synchronization
+ * and related helper functions. Uses `MonodirectionalContext` for specific behavior. */
 class MonodirectionalSynchronizer final : public Synchronizer {
 	MonodirectionalContext &context;
 

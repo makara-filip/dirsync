@@ -22,6 +22,9 @@ enum class ConflictResolutionMode {
 	rename,
 };
 
+/** The program arguments class, storing parsed flags and positional arguments.
+ * Based on an instance of this class, the whole program and synchronization
+ * is configured. */
 class ProgramArguments {
 	std::string executable;
 	ProgramMode mode = ProgramMode::synchronize;
@@ -80,10 +83,12 @@ class ProgramArguments {
 	friend class ProgramArgumentsBuilder;
 
 	// private constructor disallows creating default instances
-	// outside this class
+	// outside this class, use ProgramArgumentsBuilder
 	ProgramArguments() = default;
 };
 
+/** A builder design pattern for creating `ProgramArguments` instances.
+ * Exposes public setters and a `build` method. */
 class ProgramArgumentsBuilder {
 	ProgramArguments arguments;
 	using Self = ProgramArgumentsBuilder;
@@ -92,6 +97,7 @@ class ProgramArgumentsBuilder {
 	ProgramArgumentsBuilder() = default;
 	explicit ProgramArgumentsBuilder(const ProgramArguments &args) : arguments(args) {}
 
+	/** Based on the current state, returns the built `ProgramArguments`. */
 	ProgramArguments build() const { return arguments; }
 
 	Self &set_source_directory(const std::string &path) {
