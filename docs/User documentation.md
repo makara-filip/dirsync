@@ -7,6 +7,8 @@ The program supports detailed control over conflict resolution, verbosity, dry-r
 Additional directory-specific configuration is supported, saved in the directories themselves
 in a config file.
 
+![Screenshot of the program usage - Example 1 - General Usage](screenshot.png)
+
 ## Minimum software and hardware requirements
 
 The following operating system versions are supported (and tested):
