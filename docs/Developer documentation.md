@@ -102,18 +102,8 @@ Application logic, the `DirectoryConfiguration` class is separated from I/O logi
 by the abstract `DirectoryConfigurationReader` class.
 It currently has only one descendant, the `JsonDirConfigReader` class,
 but is designed to be extended for other configuration formats, e.g. TOML, XML...
-When adding new implementors of the abstract reader class, create a new instance
-and add it to the array of supported readers:
-```cpp
-const Reader *supported_readers[1] = {
-	dynamic_cast<Reader *>(new JsonDirConfigReader())
-	// add other readers here, e.g. new XmlDirConfigReader(), new BinaryDirConfigReader()...
-};
-```
-
-The list is used by `get_directory_configuration(directory, std::optional<DirectoryConfiguration> &)`
-function, where the readers are used in the order as specified, to check the existence
-of config file and if so, to parse it.
+When adding new implementors of the abstract reader class, edit the function
+`get_directory_configuration` accordingly, to use the new config file format.
 
 For JSON manipulation, parsing and serializing, the
 [JSON for Modern C++](https://github.com/nlohmann/json) library
@@ -142,6 +132,8 @@ The tests can be run using `dirsync --test`.
 
 The program does not explicitly handle hard or symbolic links or special file types
 (FIFO, sockets...).
+
+No parallelization is implemented.
 
 ## External libraries
 
