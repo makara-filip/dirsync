@@ -17,32 +17,40 @@ enum ConflictResolutionMode {
 }
 
 class ProgramArguments {
-    +string executable
-    +ProgramMode mode
-    +bool verbose
-    +bool dry_run
-    +bool copy_configurations
-    +bool delete_extra_target_files
-    +bool is_one_way_synchronization
-    +ConflictResolutionMode conflict_resolution
-    +string source_directory
-    +string target_directory
-    +bool try_parse(vector<string>)
-    +void print(ostream&) const
+    -string executable
+    -ProgramMode mode
+    -bool verbose
+    -bool dry_run
+    -bool copy_configurations
+    -bool delete_extra_target_files
+    -bool is_one_way_synchronization
+    -ConflictResolutionMode conflict_resolution
+    -string source_directory
+    -string target_directory
+
+    +static bool try_parse(vector<string>)
+    +(public getters for all fields)
+}
+
+class ProgramArgumentsBuilder {
+    -ProgramArguments args
+
+    +ProgramArguments build()
+    +(public ProgramArguments setters)
 }
 
 class DirectoryConfiguration {
-    +Version config_version
-    +vector<string> exclusion_patterns
-    +optional<uintmax_t> max_file_size
+    -Version config_version
+    -vector<string> exclusion_patterns
+    -optional<uintmax_t> max_file_size
     +bool allows(directory_entry, file_status)
     +bool accepts(directory_entry, file_status)
 }
 
 class Version {
-    +size_t major
-    +size_t minor
-    +size_t patch
+    -size_t major
+    -size_t minor
+    -size_t patch
     +bool is_compatible_with(Version)
     +operator<=>(Version)
     +operator<<(ostream)
@@ -52,105 +60,105 @@ class wildcard_matches {
     is function
 }
 
-
-class DirectoryConfigurationReader {
-    +read_from_directory(directory_entry, ProgramArguments): DirectoryConfigurationReadResult
+abstract class DirectoryConfigurationReader {
+    +read_from_directory(directory, args): Result
     +config_file_name(): const char*
 }
 
-abstract DirectoryConfigurationReader
-
-class JsonDirConfigReader {
-    +read_from_directory(directory_entry, ProgramArguments): DirectoryConfigurationReadResult
+class JsonDirConfigReader implements DirectoryConfigurationReader {
+    +read_from_directory(directory, args): Result
     +config_file_name(): const char*
 }
 
-JsonDirConfigReader --|> DirectoryConfigurationReader : inherits from
+abstract class Context {
+    +ProgramArguments args
+}
 
-class MonodirectionalContext {
-    +vector<optional<DirectoryConfiguration>> source_configuration_stack
-    +vector<optional<DirectoryConfiguration>> target_configuration_stack
+abstract class BinaryContext implements Context {
+    +ConfigurationPair: pair of two optional<DirectoryConfiguration>
+}
+
+abstract class Synchronizer {
+    +synchronize() abstract
+}
+
+class MonodirectionalContext implements BinaryContext {
+    +get_source_root(): optional<DirectoryConfiguration>
+    +get_target_root(): optional<DirectoryConfiguration>
+    +get_target_leaf_configuration(): optional<DirectoryConfiguration>
+
+    +should_synchronize(directory_entry): bool
+
     +should_copy(directory_entry, file_status): bool
     -source_allows_to_copy(entry, status): bool
     -target_accepts(entry, status): bool
 }
 
-class BidirectionalContext {
-    ConfigurationPair: pair of two optional<DirectoryConfiguration>
-    +vector<ConfigurationPair> configuration_stack
+class MonodirectionalSynchronizer implements Synchronizer {
+    -MonodirectionalContext& context
+
+    +synchronize() override
+
+    -synchronize_directories_recursively(source, target)
+    -synchronize_directory_entry(source_entry, target_directory)
+    -synchronize_config_file(source_entry, target_path)
+    -synchronize_regular_file(source_file, target_path)
+
+    -delete_extra_target_entries(source_directory, target_directory)
+}
+
+class BidirectionalContext implements BinaryContext {
+    +get_root_first(): fs::path
+	+get_root_second(): fs::path
 }
 
 class ChildEntryInfo {
     +bool exists
-    +directory_entry entry
-    +file_status status
+    +fs::directory_entry entry
+    +fs::path path
+    +fs::file_status status
     +is_regular_file(): bool
     +is_directory(): bool
 }
 
+class BidirectionalSynchronizer implements Synchronizer {
+	-BidirectionalContext &context
+
+	+synchronize() override
+
+	-synchronize_directories(left, right)
+	-synchronize_partial_entries(left, right)
+	-synchronize_existing_entries(left, right)
+	-synchronize_files(left, right)
+
+	-static get_directory_entry_names(directory, config, out_names)
+}
+
 ' ==== FUNCTIONS AS CLASS ICONS ====
-class synchronize_directories_recursively {
-    is function
-}
-class synchronize_directories_bidirectionally {
-    is function
-}
-class synchronize_file {
-    is function
-}
-class synchronize_files_bidirectionally {
-    is function
-}
-class delete_extra_target_entries {
-    is function
-}
+
 class get_directory_configuration {
     is function
 }
 
 ' ==== STRUCT RELATIONSHIPS ====
 
+ProgramArgumentsBuilder --> ProgramArguments : builds
+
+Context --> ProgramArguments : stores
+
+MonodirectionalSynchronizer --> MonodirectionalContext : stores & uses
+BidirectionalSynchronizer --> BidirectionalContext : stores & uses
+
 DirectoryConfiguration ..> wildcard_matches : calls
 
-MonodirectionalContext --> DirectoryConfiguration : stores
-BidirectionalContext --> DirectoryConfiguration : stores
+BinaryContext --> DirectoryConfiguration : stores
+BidirectionalSynchronizer --> ChildEntryInfo : uses
 
 ProgramArguments --> ProgramMode
 ProgramArguments --> ConflictResolutionMode
 
-' ==== FUNCTION RELATIONSHIPS ====
-
-get_directory_configuration ..> DirectoryConfiguration : loads
-get_directory_configuration --> JsonDirConfigReader : uses
+get_directory_configuration --> DirectoryConfiguration : loads
+get_directory_configuration --> DirectoryConfigurationReader : uses
 get_directory_configuration --> Version : verifies
-
-DirectoryConfiguration : allows() --> accepts()
-DirectoryConfiguration : accepts() --> wildcard_matches()
-DirectoryConfiguration : accepts() --> filesystem::is_regular_file()
-DirectoryConfiguration : accepts() --> entry.file_size()
-
-MonodirectionalContext : should_copy() --> source_allows_to_copy()
-MonodirectionalContext : should_copy() --> target_accepts()
-
-JsonDirConfigReader : read_from_directory() --> DirectoryConfiguration
-
-synchronize_directories_recursively --> ProgramArguments : uses
-synchronize_directories_recursively --> MonodirectionalContext : uses
-synchronize_directories_recursively --> synchronize_file : calls
-synchronize_directories_recursively --> delete_extra_target_entries : calls
-synchronize_directories_recursively --> get_directory_configuration : calls
-synchronize_directories_recursively ..> synchronize_directories_recursively : recursion
-
-synchronize_file --> ProgramArguments
-synchronize_file --> MonodirectionalContext
-
-synchronize_directories_bidirectionally --> ProgramArguments : uses
-synchronize_directories_bidirectionally --> BidirectionalContext : uses
-synchronize_directories_bidirectionally --> synchronize_files_bidirectionally : calls
-synchronize_directories_bidirectionally --> ChildEntryInfo : uses
-synchronize_directories_bidirectionally --> get_directory_configuration : calls
-synchronize_directories_bidirectionally ..> synchronize_directories_bidirectionally : recursion
-
-synchronize_files_bidirectionally --> ProgramArguments
 
 @enduml
