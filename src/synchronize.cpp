@@ -104,18 +104,16 @@ int synchronize_directories(const ProgramArguments &arguments) {
 		MonodirectionalSynchronizer synchronizer(context);
 		error = synchronizer.synchronize();
 	} else {
-		// // we do not have the source and target directories, we have two source ones
-		//
-		// error = verify_source_directory(source_path, source_directory, source_status);
-		// if (error) return error;
-		// error = verify_source_directory(target_path, target_directory, target_status);
-		// if (error) return error;
-		//
-		// fs::directory_entry source_left = source_directory;
-		// fs::directory_entry source_right = target_directory;
-		//
-		// BidirectionalContext context(&source_left, &source_right);
-		// error = synchronize_directories_bidirectionally(arguments, context, source_left, source_right);
+		// we do not have the source and target directories, we have two source ones
+
+		error = verify_source_directory(source_path, source_directory, source_status);
+		if (error) return error;
+		error = verify_source_directory(target_path, target_directory, target_status);
+		if (error) return error;
+
+		BidirectionalContext context(arguments);
+		BidirectionalSynchronizer synchronizer(context);
+		error = synchronizer.synchronize();
 	}
 
 	return error;

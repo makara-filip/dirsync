@@ -142,7 +142,6 @@ class SimpleOneWayTest final : public Test {
 	}
 };
 
-/*
 class SimpleTwoWayTest final : public Test {
 	const fs::path file_in_source_only = source / "source-only.txt";
 	const fs::path file_in_target_only = target / "target-only.txt";
@@ -165,12 +164,13 @@ class SimpleTwoWayTest final : public Test {
 	}
 
 	void perform() override {
-		ProgramArguments args;
-		args.source_directory = source.string();
-		args.target_directory = target.string();
-		args.is_one_way_synchronization = false; // testing this behaviour
-		args.verbose = true;
+		ProgramArgumentsBuilder builder;
+		builder.set_source_directory(source)
+			.set_target_directory(target)
+			.set_two_way()
+			.set_verbosity(true);
 
+		const ProgramArguments args = builder.build();
 		result = synchronize_directories(args);
 	}
 
@@ -191,7 +191,6 @@ class SimpleTwoWayTest final : public Test {
 		remove_recursively(target);
 	}
 };
-*/
 
 class ConflictRenamingTest final : public Test {
 	const std::string common_filename = "common.txt";
@@ -315,9 +314,9 @@ int run_tests() {
 	SimpleOneWayTest test;
 	perform_single_test(test);
 
-	// std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
-	// SimpleTwoWayTest test2;
-	// perform_single_test(test2);
+	std::cout << "Test 2: simple two-way synchronization with default settings" << std::endl;
+	SimpleTwoWayTest test2;
+	perform_single_test(test2);
 
 	std::cout << "Test 3: one-way synchronization with conflict renaming" << std::endl;
 	ConflictRenamingTest test3;

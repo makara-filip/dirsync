@@ -21,7 +21,7 @@ class MonodirectionalContext final : public BinaryContext {
 		return get_leaf_configuration_pair().second;
 	}
 
-	bool should_synchronize(const fs::directory_entry &entry) const override {
+	bool should_synchronize(const fs::directory_entry &entry) const {
 		return source_allows_to_copy(entry) && target_accepts(entry);
 	}
 

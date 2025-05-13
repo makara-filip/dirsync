@@ -11,7 +11,7 @@ enum class ProgramMode {
 	synchronize,
 	test
 	// TODO: other options such as:
-	// - ignore <file-or-directory>: adds the file/directrory to the .dirsync config file
+	// - ignore <file-or-directory>: adds the file/directory to the .dirsync config file
 };
 
 /** A conflict-resolving strategy when synchronizing different versions
@@ -89,6 +89,9 @@ class ProgramArgumentsBuilder {
 	using Self = ProgramArgumentsBuilder;
 
 	public:
+	ProgramArgumentsBuilder() = default;
+	explicit ProgramArgumentsBuilder(const ProgramArguments &args) : arguments(args) {}
+
 	ProgramArguments build() const { return arguments; }
 
 	Self &set_source_directory(const std::string &path) {
@@ -103,11 +106,11 @@ class ProgramArgumentsBuilder {
 		arguments.is_one_way_synchronization = false;
 		return *this;
 	}
-	Self &set_verbosity(bool v) {
+	Self &set_verbosity(const bool v) {
 		arguments.verbose = v;
 		return *this;
 	}
-	Self &set_conflict_resolution(ConflictResolutionMode mode) {
+	Self &set_conflict_resolution(const ConflictResolutionMode mode) {
 		arguments.conflict_resolution = mode;
 		return *this;
 	}

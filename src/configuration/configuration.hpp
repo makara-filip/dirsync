@@ -24,30 +24,49 @@
 /** A local directory configuration, saved as a file inside the directory it configures.
  * Contains information about the wildcard-supported excluded patterns and other
  * filtering information. */
-struct DirectoryConfiguration {
-	/** A semver (sematic versioning) configuration version which should be compatible
-	 * with the program version to work correctly. */
+class DirectoryConfiguration {
 	Version config_version;
+	std::vector<std::string> exclusion_patterns;
+	std::optional<std::uintmax_t> max_file_size;
 
 	//	DirectoryRole role = DirectoryRole::unspecified;
-	//	DateTime last_synchronized_date; // TODO
+	//	DateTime last_synchronized_date;
 	//	ExclusionFlags exclusionFlags;
 
 	// TODO: make a distinction between "not accepting" and "not allowing" patterns?
 	// is there a real-world scenario for this logic?
 
-	/** A list of excluded filenames that are not copied from nor to the configured directory.
-	 * Supports wildcards with asterisk '*' character, e.g. `example-*.txt` or `*.log`. */
-	std::vector<std::string> exclusion_patterns;
+	// expose private members to JSON serializer/parser functions
+	using Json = nlohmann::json;
+	friend void from_json(const Json &j, DirectoryConfiguration &p);
+	friend void to_json(Json &j, const DirectoryConfiguration &p);
 
-	/** An optional maximum file size in bytes that is allowed to be copied to the configured directory. */
-	std::optional<std::uintmax_t> max_file_size;
+	public:
+	// /** Getter for the semver (sematic versioning) configuration version
+	//  * which should be compatible with the program version to work correctly. */
+	// const Version &get_version() const { return config_version; }
+	//
+	// /** Getter for a list of excluded filenames that are not copied from nor to the configured directory.
+	//  * Supports wildcards with asterisk '*' character, e.g. `example-*.txt` or `*.log`. */
+	// const std::vector<std::string> &get_exclusion_patterns() const {
+	// 	return exclusion_patterns;
+	// }
+	//
+	// /** Getter for an optional maximum file size in bytes that is allowed
+	//  * to be copied to the configured directory. */
+	// const std::optional<std::uintmax_t> &get_max_file_size() const {
+	// 	return max_file_size;
+	// }
 
+	/** Returns true if the filesystem entry is allowed to be copied
+	 * from the directory configured by this instance. */
 	bool allows(const std::filesystem::directory_entry &entry) const {
 		// TODO: implement "not accepting" and "not allowing" patterns?
 		return accepts(entry);
 	}
 
+	/** Returns true if the filesystem entry is accepted
+	 * in the directory configured by this instance. */
 	bool accepts(const std::filesystem::directory_entry &entry) const {
 		const std::string filename = entry.path().filename().string();
 

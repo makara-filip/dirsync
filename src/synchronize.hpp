@@ -62,14 +62,14 @@ class BinaryContext : public Context {
 	void pop_configuration_pair() {
 		configuration_stack.pop_back();
 	}
-
-	virtual bool should_synchronize(const fs::directory_entry &entry) const = 0;
 };
 
 // TODO: declare a BinarySynchronizer? accepting only BinaryContexts
 
 class Synchronizer {
 	public:
+	/** Starts the synchronization process, where the implementation is given
+	 * by Synchronizer class descendants. Uses the provided context and program arguments. */
 	virtual int synchronize() = 0;
 
 	virtual ~Synchronizer() = default;
