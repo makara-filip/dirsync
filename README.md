@@ -1,7 +1,5 @@
 # DirSync project
 
-[Specification](./specification.md)
-
 [Developer documentation](./docs/Developer%20documentation.md)
 
 [User documentation](./docs/User%20documentation.md)
